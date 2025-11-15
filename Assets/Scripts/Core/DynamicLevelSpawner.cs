@@ -54,7 +54,7 @@ namespace BubblePuzzle.Core
 
             Debug.Log("========== DYNAMIC LEVEL GENERATION START ==========");
             Debug.Log($"[DynamicLevelSpawner] Using path data: {levelPathData.name}");
-            Debug.Log($"[DynamicLevelSpawner] Paths: {levelPathData.GetPathCount()}, MoveSpeed: {levelPathData.moveSpeed}s");
+            Debug.Log($"[DynamicLevelSpawner] Paths: {levelPathData.GetPathCount()}, MoveSpeed: {levelPathData.MoveSpeed}s");
 
             // Clear existing bubbles
             if (bubbleGrid != null)
@@ -226,7 +226,7 @@ namespace BubblePuzzle.Core
 
             // Animate movement - all bubbles move simultaneously
             float elapsed = 0f;
-            float moveSpeed = levelPathData.moveSpeed;
+            float moveSpeed = levelPathData.MoveSpeed;
 
             while (elapsed < moveSpeed)
             {
@@ -319,13 +319,13 @@ namespace BubblePuzzle.Core
 
             // Draw center position
             Gizmos.color = Color.cyan;
-            Vector2 centerWorld = bubbleGrid.GetWorldPosition(levelPathData.centerPosition);
+            Vector2 centerWorld = bubbleGrid.GetWorldPosition(levelPathData.CenterPosition);
             Gizmos.DrawWireSphere(centerWorld, 0.3f);
 
             // Draw path preview
-            if (levelPathData.spawnPaths != null)
+            if (levelPathData.SpawnPaths != null)
             {
-                for (int pathIndex = 0; pathIndex < levelPathData.spawnPaths.Length; pathIndex++)
+                for (int pathIndex = 0; pathIndex < levelPathData.SpawnPaths.Length; pathIndex++)
                 {
                     List<HexCoordinate> coords = levelPathData.GetCoordinatesForPath(pathIndex);
 

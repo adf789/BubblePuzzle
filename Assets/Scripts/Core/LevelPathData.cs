@@ -10,18 +10,27 @@ namespace BubblePuzzle.Core
     [CreateAssetMenu(fileName = "LevelPathData", menuName = "BubblePuzzle/Level Path Data", order = 1)]
     public class LevelPathData : ScriptableObject
     {
+        public HexCoordinate CenterPosition => centerPosition;
+        public float MoveSpeed => moveSpeed;
+        public BubbleSpawnPath[] SpawnPaths => spawnPaths;
+
         [Header("Spawn Paths")]
         [Tooltip("Array of spawn paths (typically 2: left and right)")]
-        public BubbleSpawnPath[] spawnPaths;
+        [SerializeField] private BubbleSpawnPath[] spawnPaths;
+
+        [Header("Spawn count Settings")]
+        [Tooltip("Spawn max and min count")]
+        [SerializeField] private int maxSpawnCount;
+        [SerializeField] private int minSpawnCount;
 
         [Header("Animation Settings")]
         [Tooltip("Time in seconds for each bubble movement step")]
         [Range(0.1f, 1.0f)]
-        public float moveSpeed = 0.3f;
+        [SerializeField] private float moveSpeed = 0.3f;
 
         [Header("Grid Reference")]
         [Tooltip("Center position reference (usually 0,0)")]
-        public HexCoordinate centerPosition = new HexCoordinate(0, 0);
+        [SerializeField] private HexCoordinate centerPosition = new HexCoordinate(0, 0);
 
         /// <summary>
         /// Get all coordinates for a specific path
@@ -104,6 +113,32 @@ namespace BubblePuzzle.Core
         }
 
 #if UNITY_EDITOR
+        void OnValidate()
+        {
+            InitializeSpawnCount();
+        }
+
+        private void InitializeSpawnCount()
+        {
+            if (spawnPaths == null || spawnPaths.Length == 0)
+                return;
+
+            maxSpawnCount = Mathf.Max(1, maxSpawnCount);
+            minSpawnCount = Mathf.Clamp(minSpawnCount, 1, maxSpawnCount);
+
+            for (int i = 0; i < spawnPaths.Length; i++)
+            {
+                if (spawnPaths[i].directions.Length == maxSpawnCount)
+                    continue;
+
+                var newDirections = new HexCoordinate.Direction[maxSpawnCount];
+                int minCount = Mathf.Min(spawnPaths[i].directions.Length, maxSpawnCount);
+
+                System.Array.Copy(spawnPaths[i].directions, newDirections, minCount);
+
+                spawnPaths[i].directions = newDirections;
+            }
+        }
         /// <summary>
         /// Validate and log path information
         /// </summary>
@@ -133,85 +168,6 @@ namespace BubblePuzzle.Core
             bool isValid = ValidateAllPaths();
             Debug.Log($"Validation Result: {(isValid ? "✓ VALID" : "✗ INVALID")}");
             Debug.Log("================================================");
-        }
-
-        /// <summary>
-        /// Create example data for right path (wall at 4)
-        /// </summary>
-        [ContextMenu("Create Example Right Path (Wall 4)")]
-        public void CreateExampleRightPath()
-        {
-            spawnPaths = new BubbleSpawnPath[1];
-            spawnPaths[0] = new BubbleSpawnPath
-            {
-                startPosition = new HexCoordinate(1, 0),
-                directions = new HexCoordinate.Direction[]
-                {
-                    HexCoordinate.Direction.Right,       // (1,0) → (2,0)
-                    HexCoordinate.Direction.Right,       // (2,0) → (3,0)
-                    HexCoordinate.Direction.BottomRight, // (3,0) → (4,-1)
-                    HexCoordinate.Direction.BottomLeft,  // (4,-1) → (4,-2)
-                    HexCoordinate.Direction.Left,        // (4,-2) → (3,-2)
-                    HexCoordinate.Direction.Left,        // (3,-2) → (2,-2)
-                    HexCoordinate.Direction.BottomLeft,  // (2,-2) → (2,-3)
-                    HexCoordinate.Direction.BottomRight, // (2,-3) → (3,-4)
-                    HexCoordinate.Direction.Right,       // (3,-4) → (4,-4)
-                    HexCoordinate.Direction.Right        // (4,-4) → (5,-4)
-                }
-            };
-
-            Debug.Log("Example right path created with 11 bubbles");
-            UnityEditor.EditorUtility.SetDirty(this);
-        }
-
-        /// <summary>
-        /// Create example data for both left and right paths
-        /// </summary>
-        [ContextMenu("Create Example Both Paths (Wall 4)")]
-        public void CreateExampleBothPaths()
-        {
-            spawnPaths = new BubbleSpawnPath[2];
-
-            // Right path
-            spawnPaths[0] = new BubbleSpawnPath
-            {
-                startPosition = new HexCoordinate(1, 0),
-                directions = new HexCoordinate.Direction[]
-                {
-                    HexCoordinate.Direction.Right,
-                    HexCoordinate.Direction.Right,
-                    HexCoordinate.Direction.BottomRight,
-                    HexCoordinate.Direction.BottomLeft,
-                    HexCoordinate.Direction.Left,
-                    HexCoordinate.Direction.Left,
-                    HexCoordinate.Direction.BottomLeft,
-                    HexCoordinate.Direction.BottomRight,
-                    HexCoordinate.Direction.Right,
-                    HexCoordinate.Direction.Right
-                }
-            };
-
-            // Left path (mirror of right)
-            spawnPaths[1] = new BubbleSpawnPath
-            {
-                startPosition = new HexCoordinate(-1, 0),
-                directions = new HexCoordinate.Direction[]
-                {
-                    HexCoordinate.Direction.Left,
-                    HexCoordinate.Direction.Left,
-                    HexCoordinate.Direction.BottomLeft,
-                    HexCoordinate.Direction.BottomRight,
-                    HexCoordinate.Direction.Right,
-                    HexCoordinate.Direction.Right,
-                    HexCoordinate.Direction.BottomRight,
-                    HexCoordinate.Direction.BottomLeft,
-                    HexCoordinate.Direction.Left,
-                    HexCoordinate.Direction.Left
-                }
-            };
-
-            Debug.Log("Example both paths created (left and right, 11 bubbles each)");
-            UnityEditor.EditorUtility.SetDirty(this);
         }
 #endif
     }
