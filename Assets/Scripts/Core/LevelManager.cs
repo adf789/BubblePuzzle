@@ -2,6 +2,7 @@ using System.Collections;
 using UnityEngine;
 using BubblePuzzle.Grid;
 using BubblePuzzle.Bubble;
+using BubblePuzzle.Core;
 
 namespace BubblePuzzle.Core
 {
@@ -17,9 +18,13 @@ namespace BubblePuzzle.Core
         [SerializeField] private BubbleGrid bubbleGrid;
         [SerializeField] private BubblePoolManager poolManager;
         [SerializeField] private GameObject bubblePrefab;
+        [SerializeField] private DynamicLevelSpawner dynamicSpawner;
 
         [Header("Current Level")]
         [SerializeField] private LevelData currentLevel;
+
+        [Header("Level Mode")]
+        [SerializeField] private bool useDynamicGeneration = true;
 
         private int shotsUsed = 0;
 
@@ -47,14 +52,24 @@ namespace BubblePuzzle.Core
                 bubbleGrid.ClearAll();
             }
 
-            // Load level pattern
-            if (currentLevel.InitialPattern != null && currentLevel.InitialPattern.rows != null)
+            // Choose generation method
+            if (useDynamicGeneration && dynamicSpawner != null)
             {
-                LoadPattern(currentLevel.InitialPattern);
+                // Use dynamic snake pattern generation
+                Debug.Log($"[LevelManager] Starting dynamic generation for level: {currentLevel.LevelName}");
+                dynamicSpawner.StartGeneration();
             }
             else
             {
-                GenerateRandomLevel(currentLevel);
+                // Use traditional pattern loading
+                if (currentLevel.InitialPattern != null && currentLevel.InitialPattern.rows != null)
+                {
+                    LoadPattern(currentLevel.InitialPattern);
+                }
+                else
+                {
+                    Debug.LogError($"Failed load to level: {currentLevel.LevelName}");
+                }
             }
 
             Debug.Log($"Level loaded: {currentLevel.LevelName}");
@@ -80,25 +95,6 @@ namespace BubblePuzzle.Core
                         HexCoordinate coord = new HexCoordinate(startQ + q, r);
                         SpawnBubble(coord, type.Value);
                     }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Generate random level
-        /// </summary>
-        private void GenerateRandomLevel(LevelData level)
-        {
-            int cols = level.ColumnsPerRow;
-            int halfCols = cols / 2;
-
-            for (int r = 0; r < level.Rows; r++)
-            {
-                for (int q = -halfCols; q < halfCols + (cols % 2); q++)
-                {
-                    HexCoordinate coord = new HexCoordinate(q, r);
-                    BubbleType type = level.GetRandomBubbleType();
-                    SpawnBubble(coord, type);
                 }
             }
         }

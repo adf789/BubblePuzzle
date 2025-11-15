@@ -1,5 +1,6 @@
 using UnityEngine;
 using BubblePuzzle.Core;
+using BubblePuzzle.Grid;
 
 namespace BubblePuzzle.UI
 {
@@ -65,7 +66,8 @@ namespace BubblePuzzle.UI
         public void ShowAtCoordinate(HexCoordinate coord, float hexSize)
         {
             Vector2 worldPos = coord.ToWorldPosition(hexSize);
-            transform.position = new Vector3(worldPos.x, worldPos.y, 0f);
+            Vector3 gridOffset = BubbleGrid.GridOffset;
+            transform.position = new Vector3(worldPos.x, worldPos.y, 0f) + gridOffset;
             Show();
         }
 

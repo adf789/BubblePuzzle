@@ -17,7 +17,13 @@ namespace BubblePuzzle.Grid
         private readonly Dictionary<HexCoordinate, Bubble.Bubble> grid = new Dictionary<HexCoordinate, Bubble.Bubble>();
 
         public float HexSize => hexSize;
-        public Vector2 GridOrigin => gridOrigin;
+
+        public static Vector2 GridOffset;
+
+        void Awake()
+        {
+            GridOffset = gridOrigin;
+        }
 
         /// <summary>
         /// Place bubble at coordinate
@@ -166,9 +172,16 @@ namespace BubblePuzzle.Grid
         }
 
 #if UNITY_EDITOR
+        [SerializeField] private bool isDrawGrids = true;
+
         private void OnDrawGizmos()
         {
-            if (!Application.isPlaying) return;
+            if (!Application.isPlaying)
+            {
+                if (isDrawGrids)
+                    OnDrawEditorGrid();
+                return;
+            }
 
             Gizmos.color = Color.yellow;
 
@@ -194,6 +207,34 @@ namespace BubblePuzzle.Grid
             // Draw grid origin
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(gridOrigin, 0.2f);
+        }
+
+        private void OnDrawEditorGrid()
+        {
+            Gizmos.color = Color.yellow;
+
+            // Draw grid positions and coordinates
+            for (int q = -10; q <= 10; q++)
+            {
+                for (int r = -10; r <= 10; r++)
+                {
+                    HexCoordinate coord = new HexCoordinate(q, r);
+                    Vector2 pos = GetWorldPosition(coord);
+                    DrawHexagon(pos, hexSize);
+
+                    // Draw coordinate text
+                    UnityEditor.Handles.Label(
+                        new Vector3(pos.x, pos.y, 0f),
+                        coord.ToString(),
+                        new GUIStyle()
+                        {
+                            normal = new GUIStyleState() { textColor = Color.white },
+                            fontSize = 10,
+                            alignment = TextAnchor.MiddleCenter
+                        }
+                    );
+                }
+            }
         }
 
         private void DrawHexagon(Vector2 center, float size)

@@ -1754,6 +1754,7 @@ GameObject:
   - component: {fileID: 1849897845}
   - component: {fileID: 1849897844}
   - component: {fileID: 1849897848}
+  - component: {fileID: 1849897849}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -1774,7 +1775,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   hexSize: 0.6
-  gridOrigin: {x: 0, y: 0}
+  gridOrigin: {x: 0, y: 6}
+  isDrawGrids: 0
 --- !u!114 &1849897841
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1907,7 +1909,24 @@ MonoBehaviour:
   bubbleGrid: {fileID: 1849897840}
   poolManager: {fileID: 1849897844}
   bubblePrefab: {fileID: 7961008503042733916, guid: d416d16fce554b44f8eb0d9fd0e36c68, type: 3}
+  dynamicSpawner: {fileID: 1849897849}
   currentLevel: {fileID: 11400000, guid: d62efda54ec8c2442bb79059c51762ea, type: 2}
+  useDynamicGeneration: 1
+--- !u!114 &1849897849
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1849897839}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8045c9e82607f9d4c8d6769a532d2f3e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  levelPathData: {fileID: 11400000, guid: 2d6b5c1ec9d10244c98d1aa9d4483771, type: 2}
+  bubbleGrid: {fileID: 1849897840}
+  poolManager: {fileID: 1849897844}
 --- !u!1 &1982051976
 GameObject:
   m_ObjectHideFlags: 0
@@ -2201,7 +2220,7 @@ Transform:
   m_GameObject: {fileID: 2096970059}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 10, z: 0}
+  m_LocalPosition: {x: 0, y: 6.87, z: 0}
   m_LocalScale: {x: 10.2, y: 0.2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
