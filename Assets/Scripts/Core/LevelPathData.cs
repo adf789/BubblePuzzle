@@ -10,9 +10,11 @@ namespace BubblePuzzle.Core
     [CreateAssetMenu(fileName = "LevelPathData", menuName = "BubblePuzzle/Level Path Data", order = 1)]
     public class LevelPathData : ScriptableObject
     {
-        public HexCoordinate CenterPosition => centerPosition;
-        public float MoveSpeed => moveSpeed;
         public BubbleSpawnPath[] SpawnPaths => spawnPaths;
+        public int MaxSpawnCount => maxSpawnCount;
+        public int MinSpawnCount => minSpawnCount;
+        public float MoveSpeed => moveSpeed;
+        public HexCoordinate CenterPosition => centerPosition;
 
         [Header("Spawn Paths")]
         [Tooltip("Array of spawn paths (typically 2: left and right)")]

@@ -30,6 +30,252 @@ namespace BubblePuzzle.Core
         private bool isSpawning = false;
 
         /// <summary>
+        /// Check if all required bubbles exist in grid and regenerate only missing segments
+        /// Generates bubbles only for continuous empty segments along each path
+        /// </summary>
+        public void RegenerateIfNeeded()
+        {
+            if (levelPathData == null)
+            {
+                Debug.LogError("[DynamicLevelSpawner] LevelPathData is null!");
+                return;
+            }
+
+            if (isSpawning)
+            {
+                Debug.LogWarning("[DynamicLevelSpawner] Already spawning, cannot regenerate!");
+                return;
+            }
+
+            Debug.Log("========== CHECKING MISSING BUBBLES ==========");
+
+            // Check each path for missing segments
+            bool needsRegeneration = false;
+
+            for (int pathIndex = 0; pathIndex < levelPathData.SpawnPaths.Length; pathIndex++)
+            {
+                List<HexCoordinate> pathCoords = levelPathData.GetCoordinatesForPath(pathIndex);
+
+                // Find first missing bubble in path
+                int firstMissingIndex = -1;
+                for (int i = 0; i < pathCoords.Count; i++)
+                {
+                    if (!bubbleGrid.IsOccupied(pathCoords[i]))
+                    {
+                        firstMissingIndex = i;
+                        break;
+                    }
+                }
+
+                // If no missing bubbles in this path, continue to next path
+                if (firstMissingIndex == -1)
+                {
+                    Debug.Log($"[DynamicLevelSpawner] Path {pathIndex}: All bubbles exist, skipping");
+                    continue;
+                }
+
+                // Find where the continuous missing segment ends
+                int lastMissingIndex = firstMissingIndex;
+                for (int i = firstMissingIndex + 1; i < pathCoords.Count; i++)
+                {
+                    if (bubbleGrid.IsOccupied(pathCoords[i]))
+                    {
+                        // Found existing bubble, stop here
+                        break;
+                    }
+                    lastMissingIndex = i;
+                }
+
+                int missingCount = lastMissingIndex - firstMissingIndex + 1;
+                Debug.Log($"[DynamicLevelSpawner] Path {pathIndex}: Missing segment [{firstMissingIndex}~{lastMissingIndex}] ({missingCount} bubbles)");
+
+                needsRegeneration = true;
+            }
+
+            if (!needsRegeneration)
+            {
+                Debug.Log("[DynamicLevelSpawner] All required bubbles exist in grid. No regeneration needed.");
+                return;
+            }
+
+            // Start partial regeneration
+            Debug.Log("[DynamicLevelSpawner] Starting partial regeneration for missing segments...");
+            StartCoroutine(RegenerateMissingSegments());
+        }
+
+        /// <summary>
+        /// Regenerate only missing continuous segments for each path
+        /// Always starts from path[0] and pushes through to fill missing segment
+        /// </summary>
+        private IEnumerator RegenerateMissingSegments()
+        {
+            isSpawning = true;
+
+            // Process each path independently
+            for (int pathIndex = 0; pathIndex < levelPathData.SpawnPaths.Length; pathIndex++)
+            {
+                List<HexCoordinate> pathCoords = levelPathData.GetCoordinatesForPath(pathIndex);
+
+                // Find first missing bubble
+                int firstMissingIndex = -1;
+                for (int i = 0; i < pathCoords.Count; i++)
+                {
+                    if (!bubbleGrid.IsOccupied(pathCoords[i]))
+                    {
+                        firstMissingIndex = i;
+                        break;
+                    }
+                }
+
+                if (firstMissingIndex == -1) continue;
+
+                // Find last continuous missing bubble
+                int lastMissingIndex = firstMissingIndex;
+                for (int i = firstMissingIndex + 1; i < pathCoords.Count; i++)
+                {
+                    if (bubbleGrid.IsOccupied(pathCoords[i]))
+                    {
+                        break;
+                    }
+                    lastMissingIndex = i;
+                }
+
+                // Generate missing segment using chain animation
+                Debug.Log($"[DynamicLevelSpawner] Generating path {pathIndex} segment [{firstMissingIndex}~{lastMissingIndex}]");
+
+                // Build chain: collect existing bubbles from start to firstMissingIndex-1
+                List<Bubble.Bubble> chain = new();
+                List<int> existingBubbleIndices = new(); // Track which positions had bubbles
+
+                for (int i = 0; i < firstMissingIndex; i++)
+                {
+                    Bubble.Bubble existingBubble = bubbleGrid.GetBubble(pathCoords[i]);
+                    if (existingBubble != null)
+                    {
+                        chain.Add(existingBubble);
+                        existingBubbleIndices.Add(i);
+                        // Remove from grid temporarily for animation
+                        bubbleGrid.RemoveBubble(pathCoords[i]);
+                    }
+                }
+
+                Debug.Log($"[DynamicLevelSpawner] Collected {chain.Count} existing bubbles for chain push");
+
+                int segmentLength = lastMissingIndex - firstMissingIndex + 1;
+
+                for (int phase = 0; phase < segmentLength; phase++)
+                {
+                    // Step 1: Move all bubbles in chain (existing + newly created) forward
+                    if (chain.Count > 0)
+                    {
+                        yield return AnimateSegmentChain(chain, pathCoords, 0, phase);
+                    }
+
+                    // Step 2: Create new bubble at path start position (index 0)
+                    HexCoordinate startCoord = pathCoords[0];
+                    Vector2 startWorldPos = bubbleGrid.GetWorldPosition(startCoord);
+
+                    Bubble.Bubble newBubble = CreateBubble(startCoord);
+                    if (newBubble != null)
+                    {
+                        newBubble.transform.position = startWorldPos;
+                        chain.Insert(0, newBubble);
+                        Debug.Log($"[DynamicLevelSpawner] Path {pathIndex} Phase {phase + 1}: Created bubble at {startCoord}");
+                    }
+                }
+
+                // Place bubbles back in grid
+                // Only place up to lastMissingIndex (fill the missing segment completely)
+                int bubblesNeeded = lastMissingIndex + 1; // Total bubbles needed to fill from 0 to lastMissingIndex
+
+                for (int i = 0; i < bubblesNeeded && i < chain.Count; i++)
+                {
+                    if (chain[i] != null)
+                    {
+                        // Skip if this position already has a bubble (shouldn't happen, but safety check)
+                        if (!bubbleGrid.IsOccupied(pathCoords[i]))
+                        {
+                            bubbleGrid.PlaceBubble(pathCoords[i], chain[i]);
+                            Debug.Log($"[DynamicLevelSpawner] Placed bubble at {pathCoords[i]}");
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"[DynamicLevelSpawner] Position {pathCoords[i]} already occupied, destroying extra bubble");
+                            Destroy(chain[i].gameObject);
+                        }
+                    }
+                }
+
+                chain.Clear();
+            }
+
+            isSpawning = false;
+            Debug.Log("========== PARTIAL REGENERATION COMPLETE ==========");
+        }
+
+        /// <summary>
+        /// Animate a segment chain (similar to AnimateChain but for partial path)
+        /// </summary>
+        private IEnumerator AnimateSegmentChain(List<Bubble.Bubble> chain, List<HexCoordinate> pathCoords, int segmentStartIndex, int phase)
+        {
+            if (chain.Count == 0) yield break;
+
+            Debug.Log($"[DynamicLevelSpawner] Animating segment chain - {chain.Count} bubbles");
+
+            // Record start positions
+            Vector3[] startPositions = new Vector3[chain.Count];
+            for (int i = 0; i < chain.Count; i++)
+            {
+                startPositions[i] = chain[i].transform.position;
+            }
+
+            // Calculate target positions (each bubble moves to next coordinate in segment)
+            Vector3[] targetPositions = new Vector3[chain.Count];
+            for (int i = 0; i < chain.Count; i++)
+            {
+                int targetIndex = segmentStartIndex + i + 1;
+                if (targetIndex < pathCoords.Count)
+                {
+                    targetPositions[i] = bubbleGrid.GetWorldPosition(pathCoords[targetIndex]);
+                }
+                else
+                {
+                    targetPositions[i] = startPositions[i];
+                }
+            }
+
+            // Animate movement
+            float elapsed = 0f;
+            float moveSpeed = levelPathData.MoveSpeed;
+
+            while (elapsed < moveSpeed)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / moveSpeed;
+                float smoothT = 1f - Mathf.Pow(1f - t, 3f);
+
+                for (int i = 0; i < chain.Count; i++)
+                {
+                    if (chain[i] != null)
+                    {
+                        chain[i].transform.position = Vector3.Lerp(startPositions[i], targetPositions[i], smoothT);
+                    }
+                }
+
+                yield return null;
+            }
+
+            // Snap to final positions
+            for (int i = 0; i < chain.Count; i++)
+            {
+                if (chain[i] != null)
+                {
+                    chain[i].transform.position = targetPositions[i];
+                }
+            }
+        }
+
+        /// <summary>
         /// Start dynamic level generation
         /// </summary>
         public void StartGeneration()

@@ -153,6 +153,8 @@ namespace BubblePuzzle.GameLogic
             Debug.Log($"[DestructionHandler] Waiting {fallDuration}s for fall animations");
             yield return new WaitForSeconds(fallDuration);
 
+            Debug.Log("[ProcessGameLogic] Fall animation complete");
+
             Debug.Log("---------- FALL END ----------");
         }
 

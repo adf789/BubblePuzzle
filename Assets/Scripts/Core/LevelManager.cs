@@ -75,6 +75,16 @@ namespace BubblePuzzle.Core
             Debug.Log($"Level loaded: {currentLevel.LevelName}");
         }
 
+        public void RegenerateDynamicLevel()
+        {
+            if (useDynamicGeneration && dynamicSpawner != null)
+            {
+                // Use dynamic snake pattern generation
+                Debug.Log($"[LevelManager] Starting dynamic regeneration for level: {currentLevel.LevelName}");
+                dynamicSpawner.RegenerateIfNeeded();
+            }
+        }
+
         /// <summary>
         /// Load predefined pattern
         /// </summary>

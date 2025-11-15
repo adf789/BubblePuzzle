@@ -310,9 +310,10 @@ namespace BubblePuzzle.Shooter
 
                     // Step 4: Make them fall
                     Debug.Log("[ProcessGameLogic] Step 4: Making bubbles fall...");
-                    yield return destructionHandler.MakeBubblesFall(disconnected);
-                    Debug.Log("[ProcessGameLogic] Fall animation complete");
+                    StartCoroutine(destructionHandler.MakeBubblesFall(disconnected));
                 }
+
+                LevelManager.Instance.RegenerateDynamicLevel();
             }
             else
             {
