@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using BubblePuzzle.Grid;
 using BubblePuzzle.Bubble;
+using BubblePuzzle.Core;
 
 namespace BubblePuzzle.GameLogic
 {
@@ -23,7 +24,6 @@ namespace BubblePuzzle.GameLogic
 
         [Header("References")]
         [SerializeField] private BubbleGrid grid;
-        [SerializeField] private BubblePoolManager poolManager;
 
         /// <summary>
         /// Destroy bubbles with animation
@@ -67,6 +67,12 @@ namespace BubblePuzzle.GameLogic
                 }
             }
 
+            if (bubbles.Count > 0)
+            {
+                int damage = 1;
+                GameManager.Instance.OnDamagedBoss(bubbles.Count * damage);
+            }
+
             // Wait for delay between bubbles
             float waitTime = destructionDelay * bubbles.Count;
             Debug.Log($"[DestructionHandler] Waiting {waitTime}s for animations");
@@ -96,15 +102,8 @@ namespace BubblePuzzle.GameLogic
                 yield return null;
             }
 
-            // Return to pool or destroy
-            if (poolManager != null)
-            {
-                poolManager.ReturnBubble(bubble);
-            }
-            else
-            {
-                Destroy(bubble.gameObject);
-            }
+            bubble.ReturnToPool();
+            bubble.transform.localScale = Vector3.one;
         }
 
         /// <summary>
@@ -188,15 +187,7 @@ namespace BubblePuzzle.GameLogic
                 yield return null;
             }
 
-            // Return to pool or destroy
-            if (poolManager != null)
-            {
-                poolManager.ReturnBubble(bubble);
-            }
-            else
-            {
-                Destroy(bubble.gameObject);
-            }
+            bubble.ReturnToPool();
         }
 
         /// <summary>
@@ -211,14 +202,7 @@ namespace BubblePuzzle.GameLogic
                 grid.RemoveBubble(bubble.Coordinate);
             }
 
-            if (poolManager != null)
-            {
-                poolManager.ReturnBubble(bubble);
-            }
-            else
-            {
-                Destroy(bubble.gameObject);
-            }
+            bubble.ReturnToPool();
         }
     }
 }

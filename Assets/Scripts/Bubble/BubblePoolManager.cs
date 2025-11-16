@@ -9,8 +9,7 @@ namespace BubblePuzzle.Bubble
     /// </summary>
     public class BubblePoolManager : MonoBehaviour
     {
-        private static BubblePoolManager instance;
-        public static BubblePoolManager Instance => instance;
+        public static BubblePoolManager Instance { get; private set; }
         public int PoolCount => pool.Count;
 
         [Header("Pool Settings")]
@@ -24,9 +23,18 @@ namespace BubblePuzzle.Bubble
         private int createCount = 0;
 #endif
 
-        void Awake()
+        private void Awake()
         {
-            instance = this;
+            // Singleton pattern
+            if (!Instance)
+            {
+                Instance = this;
+            }
+            else
+            {
+                Destroy(gameObject);
+                return;
+            }
         }
 
         /// <summary>
@@ -61,6 +69,7 @@ namespace BubblePuzzle.Bubble
         private Bubble CreateNewBubble()
         {
             Bubble bubble = Instantiate(bubblePrefab, poolParent);
+            bubble.SetEventReturnPool(ReturnBubble);
             bubble.gameObject.SetActive(false);
 
             pool.Enqueue(bubble);
@@ -100,23 +109,8 @@ namespace BubblePuzzle.Bubble
         {
             if (bubble == null) return;
 
-            Bubble bubbleComponent = bubble.GetComponent<Bubble>();
-            if (bubbleComponent != null)
-            {
-                bubbleComponent.ResetBubble();
-            }
-
             bubble.gameObject.SetActive(false);
-            bubble.transform.SetParent(poolParent);
             pool.Enqueue(bubble);
-        }
-
-        /// <summary>
-        /// Get current pool size
-        /// </summary>
-        public int GetPoolSize()
-        {
-            return pool.Count;
         }
     }
 }

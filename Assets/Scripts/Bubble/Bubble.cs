@@ -13,6 +13,7 @@ namespace BubblePuzzle.Bubble
         [SerializeField] private SpriteRenderer spriteRenderer;
         [SerializeField] private new Collider2D collider;
 
+        private System.Action<Bubble> onEventReturnPool;
         private HexCoordinate coordinate;
         private bool isPlaced = false;
 
@@ -36,14 +37,6 @@ namespace BubblePuzzle.Bubble
         {
             get => isPlaced;
             set => isPlaced = value;
-        }
-
-        private void Awake()
-        {
-            if (spriteRenderer == null)
-                spriteRenderer = GetComponent<SpriteRenderer>();
-            if (collider == null)
-                collider = GetComponent<Collider2D>();
         }
 
         private void Start()
@@ -91,24 +84,34 @@ namespace BubblePuzzle.Bubble
             coordinate = new HexCoordinate(0, 0);
         }
 
-        public void SetReadyFire()
+        public void ReturnToPool()
         {
-            collider.enabled = false;
+            if (onEventReturnPool != null)
+            {
+                ResetBubble();
+
+                onEventReturnPool(this);
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
         }
 
-        public void SetFire()
+        public void SetActiveCollider(bool isActive)
         {
-            collider.enabled = true;
+            if (collider)
+                collider.enabled = isActive;
+        }
+
+        public void SetEventReturnPool(System.Action<Bubble> onEvent)
+        {
+            onEventReturnPool = onEvent;
         }
 
 #if UNITY_EDITOR
         private void OnValidate()
         {
-            if (spriteRenderer == null)
-                spriteRenderer = GetComponent<SpriteRenderer>();
-            if (collider == null)
-                collider = GetComponent<Collider2D>();
-
             UpdateVisual();
         }
 #endif

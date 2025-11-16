@@ -11,9 +11,6 @@ namespace BubblePuzzle.GameLogic
     /// </summary>
     public class MatchDetector : MonoBehaviour
     {
-        [Header("Settings")]
-        [SerializeField] private int minMatchCount = 3;
-
         /// <summary>
         /// Find all bubbles matching with the start bubble (BFS)
         /// </summary>
@@ -60,10 +57,10 @@ namespace BubblePuzzle.GameLogic
                 }
             }
 
-            Debug.Log($"[MatchDetector] BFS complete. Cluster size: {cluster.Count}, MinMatch: {minMatchCount}");
+            Debug.Log($"[MatchDetector] BFS complete. Cluster size: {cluster.Count}, MinMatch: {IntDefine.MIN_MATCH_COUNT}");
 
             // Return cluster only if matches minimum count
-            if (cluster.Count >= minMatchCount)
+            if (cluster.Count >= IntDefine.MIN_MATCH_COUNT)
             {
                 Debug.Log($"[MatchDetector] ✓ MATCH FOUND! {cluster.Count} {startBubble.Type} bubbles");
                 string coords = "";
@@ -74,62 +71,9 @@ namespace BubblePuzzle.GameLogic
                 return cluster;
             }
 
-            Debug.Log($"[MatchDetector] ✗ No match (cluster size {cluster.Count} < {minMatchCount})");
+            Debug.Log($"[MatchDetector] ✗ No match (cluster size {cluster.Count} < {IntDefine.MIN_MATCH_COUNT})");
             Debug.Log("---------- MATCH DETECTION END ----------");
             return new List<Bubble.Bubble>();
-        }
-
-        /// <summary>
-        /// Check if bubble would create a match at coordinate
-        /// </summary>
-        public bool WouldCreateMatch(HexCoordinate coord, BubbleType type, BubbleGrid grid)
-        {
-            // Temporarily place bubble
-            GameObject tempObj = new GameObject("TempBubble");
-            Bubble.Bubble tempBubble = tempObj.AddComponent<Bubble.Bubble>();
-            tempBubble.Initialize(type, coord);
-
-            grid.PlaceBubble(coord, tempBubble);
-
-            // Check for match
-            List<Bubble.Bubble> matches = FindMatchingCluster(tempBubble, grid);
-            bool hasMatch = matches.Count > 0;
-
-            // Remove temporary bubble
-            grid.RemoveBubble(coord);
-            Destroy(tempObj);
-
-            return hasMatch;
-        }
-
-        /// <summary>
-        /// Find all matching clusters in grid
-        /// </summary>
-        public List<List<Bubble.Bubble>> FindAllMatchingClusters(BubbleGrid grid)
-        {
-            List<List<Bubble.Bubble>> clusters = new List<List<Bubble.Bubble>>();
-            HashSet<Bubble.Bubble> processed = new HashSet<Bubble.Bubble>();
-
-            List<Bubble.Bubble> allBubbles = grid.GetAllBubbles();
-
-            foreach (Bubble.Bubble bubble in allBubbles)
-            {
-                if (processed.Contains(bubble))
-                    continue;
-
-                List<Bubble.Bubble> cluster = FindMatchingCluster(bubble, grid);
-
-                if (cluster.Count > 0)
-                {
-                    clusters.Add(cluster);
-                    foreach (Bubble.Bubble b in cluster)
-                    {
-                        processed.Add(b);
-                    }
-                }
-            }
-
-            return clusters;
         }
 
 #if UNITY_EDITOR

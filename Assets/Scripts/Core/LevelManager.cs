@@ -11,13 +11,9 @@ namespace BubblePuzzle.Core
     /// </summary>
     public class LevelManager : MonoBehaviour
     {
-        private static LevelManager instance;
-        public static LevelManager Instance => instance;
+        public bool IsSpawning => dynamicSpawner.IsSpawning();
 
         [Header("References")]
-        [SerializeField] private BubbleGrid bubbleGrid;
-        [SerializeField] private BubblePoolManager poolManager;
-        [SerializeField] private GameObject bubblePrefab;
         [SerializeField] private DynamicLevelSpawner dynamicSpawner;
 
         [Header("Current Level")]
@@ -26,11 +22,14 @@ namespace BubblePuzzle.Core
         [Header("Level Mode")]
         [SerializeField] private bool useDynamicGeneration = true;
 
+        private BubbleGrid bubbleGrid;
         private int shotsUsed = 0;
 
-        void Awake()
+        public void SetBubbleGrid(BubbleGrid bubbleGrid)
         {
-            instance = this;
+            this.bubbleGrid = bubbleGrid;
+
+            dynamicSpawner?.SetBubbleGrid(bubbleGrid);
         }
 
         /// <summary>
@@ -45,12 +44,6 @@ namespace BubblePuzzle.Core
             }
 
             shotsUsed = 0;
-
-            // Clear existing bubbles
-            if (bubbleGrid != null)
-            {
-                bubbleGrid.ClearAll();
-            }
 
             // Choose generation method
             if (useDynamicGeneration && dynamicSpawner != null)
@@ -90,6 +83,9 @@ namespace BubblePuzzle.Core
         /// </summary>
         private void LoadPattern(LevelPattern pattern)
         {
+            // Clear existing bubbles
+            bubbleGrid?.ClearAll();
+
             for (int r = 0; r < pattern.rows.Length; r++)
             {
                 string row = pattern.rows[r];
@@ -114,7 +110,7 @@ namespace BubblePuzzle.Core
         /// </summary>
         private void SpawnBubble(HexCoordinate coord, BubbleType type)
         {
-            Bubble.Bubble bubble = poolManager?.GetBubble();
+            Bubble.Bubble bubble = BubblePoolManager.Instance?.GetBubble();
 
             if (bubble != null)
             {

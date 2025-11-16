@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Wall
   - Bubble
+  - Ceiling
   layers:
   - Default
   - TransparentFX
@@ -18,7 +19,7 @@ TagManager:
   - Bubble
   - Wall
   - BubbleShooter
-  - 
+  - Ceiling
   - 
   - 
   - 

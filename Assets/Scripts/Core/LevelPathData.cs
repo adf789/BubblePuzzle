@@ -34,12 +34,17 @@ namespace BubblePuzzle.Core
         [Tooltip("Center position reference (usually 0,0)")]
         [SerializeField] private HexCoordinate centerPosition = new HexCoordinate(0, 0);
 
+        public bool CheckHasPath(int pathIndex)
+        {
+            return spawnPaths != null && pathIndex >= 0 && pathIndex < spawnPaths.Length;
+        }
+
         /// <summary>
         /// Get all coordinates for a specific path
         /// </summary>
-        public List<HexCoordinate> GetCoordinatesForPath(int pathIndex)
+        public IReadOnlyList<HexCoordinate> GetCoordinatesForPath(int pathIndex)
         {
-            if (spawnPaths == null || pathIndex < 0 || pathIndex >= spawnPaths.Length)
+            if (!CheckHasPath(pathIndex))
             {
                 Debug.LogError($"[LevelPathData] Invalid path index {pathIndex} (total paths: {spawnPaths?.Length ?? 0})");
                 return new List<HexCoordinate>();

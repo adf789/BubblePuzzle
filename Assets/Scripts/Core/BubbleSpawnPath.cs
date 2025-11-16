@@ -17,12 +17,14 @@ namespace BubblePuzzle.Core
         [Tooltip("Sequence of directions to follow from start position")]
         public HexCoordinate.Direction[] directions;
 
+        private List<HexCoordinate> coordinates = new List<HexCoordinate>();
+
         /// <summary>
         /// Calculate all coordinates in this path
         /// </summary>
-        public List<HexCoordinate> GetAllCoordinates()
+        public IReadOnlyList<HexCoordinate> GetAllCoordinates()
         {
-            List<HexCoordinate> coordinates = new List<HexCoordinate>();
+            coordinates.Clear();
 
             // Start with initial position
             HexCoordinate current = startPosition;

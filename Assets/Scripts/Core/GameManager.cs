@@ -14,16 +14,18 @@ namespace BubblePuzzle.Core
         public static GameManager Instance { get; private set; }
 
         [Header("References")]
-        [SerializeField] private BubbleGrid bubbleGrid;
-        [SerializeField] private GameUI gameUI;
         [SerializeField] private LevelManager levelManager;
-        [SerializeField] private MatchDetector matchDetector;
-        [SerializeField] private GravityChecker gravityChecker;
-        [SerializeField] private BubbleReadyPool bubbleReadyPool;
+        [SerializeField] private UIManager uiManager;
 
-        public BubbleGrid Grid => bubbleGrid;
-        public GameUI UI => gameUI;
+        [Header("Boss HP")]
+        [SerializeField] private int bossHpValue;
+
         public LevelManager LevelManager => levelManager;
+        public UIManager UIManager => uiManager;
+
+        private BubbleGrid bubbleGrid;
+        private BossHp bossHp;
+        private int currentScore;
 
         private void Awake()
         {
@@ -42,19 +44,28 @@ namespace BubblePuzzle.Core
             Application.runInBackground = true;
         }
 
-        private void Start()
-        {
-            SetupGame();
-        }
-
-        private void SetupGame()
+        public void SetupGame()
         {
             Debug.Log("BubblePuzzle Game Started");
 
-            BubblePoolManager.Instance.InitializePool();
-            LevelManager.Instance.LoadLevel();
+            // Reset score
+            currentScore = 0;
 
-            bubbleReadyPool.Reload();
+            // Init boss hp
+            bossHp = new BossHp(bossHpValue);
+            var gameUI = uiManager.GetUI<GameUI>(UIType.GameUI);
+            gameUI?.SetBossHp(in bossHp);
+
+            // Setup
+            BubblePoolManager.Instance?.InitializePool();
+            levelManager.LoadLevel();
+        }
+
+        public void SetBubbleGrid(BubbleGrid bubbleGrid)
+        {
+            this.bubbleGrid = bubbleGrid;
+
+            levelManager?.SetBubbleGrid(bubbleGrid);
         }
 
         /// <summary>
@@ -63,7 +74,8 @@ namespace BubblePuzzle.Core
         public void OnBubblePlaced()
         {
             // Update UI
-            if (gameUI != null && bubbleGrid != null)
+            var gameUI = uiManager.GetUI<GameUI>(UIType.GameUI);
+            if (gameUI && bubbleGrid)
             {
                 gameUI.UpdateBubblesRemaining(bubbleGrid.GetBubbleCount());
             }
@@ -80,10 +92,11 @@ namespace BubblePuzzle.Core
         /// </summary>
         public void OnMatchScored(int bubbleCount)
         {
-            if (gameUI != null)
-            {
-                gameUI.AddMatchScore(bubbleCount);
-            }
+            int matchScore = bubbleCount * IntDefine.BASE_MATCH_SCORE;
+            currentScore += matchScore;
+
+            var gameUI = uiManager.GetUI<GameUI>(UIType.GameUI);
+            gameUI?.UpdateScore(currentScore);
 
             CheckWinCondition();
         }
@@ -93,12 +106,55 @@ namespace BubblePuzzle.Core
         /// </summary>
         public void OnBubblesFallen(int bubbleCount)
         {
-            if (gameUI != null)
-            {
-                gameUI.AddFallScore(bubbleCount);
-            }
+            int matchScore = bubbleCount * IntDefine.FALL_BONUS;
+            currentScore += matchScore;
+
+            var gameUI = uiManager.GetUI<GameUI>(UIType.GameUI);
+            gameUI?.UpdateScore(currentScore);
 
             CheckWinCondition();
+        }
+
+        public void OnDamagedBoss(int damage)
+        {
+            var gameUI = uiManager.GetUI<GameUI>(UIType.GameUI);
+            if (gameUI)
+            {
+                bool isDeath = bossHp.Damage(damage);
+
+                if (isDeath)
+                    gameUI.UpdateBossHp(in bossHp, () => OnShowResultPopup(true));
+                else
+                    gameUI.UpdateBossHp(in bossHp);
+            }
+            else
+            {
+                OnShowResultPopup(true);
+            }
+        }
+
+        private void OnShowResultPopup(bool isWin)
+        {
+            var resultPopup = uiManager.OpenUI<ResultPopup>(UIType.ResultPopup);
+
+            if (resultPopup)
+            {
+                resultPopup.SetScore(currentScore);
+                resultPopup.SetResult(isWin);
+                resultPopup.SetEventResetGame(OnResetGame);
+            }
+        }
+
+        private void OnResetGame()
+        {
+            foreach (var bubble in bubbleGrid.GetAllBubbles())
+            {
+                bubble.ReturnToPool();
+            }
+
+            SetBubbleGrid(null);
+
+            uiManager.CloseAllUI();
         }
 
         /// <summary>
@@ -106,9 +162,10 @@ namespace BubblePuzzle.Core
         /// </summary>
         private void CheckWinCondition()
         {
-            if (levelManager != null && gameUI != null)
+            var gameUI = uiManager.GetUI<GameUI>(UIType.GameUI);
+            if (levelManager != null && gameUI)
             {
-                levelManager.CheckWinCondition(gameUI.GetScore());
+                levelManager.CheckWinCondition(currentScore);
             }
         }
 
@@ -129,7 +186,7 @@ namespace BubblePuzzle.Core
 
         private void ClearGrid()
         {
-            if (bubbleGrid != null)
+            if (bubbleGrid)
             {
                 bubbleGrid.ClearAll();
                 Debug.Log("Grid cleared");

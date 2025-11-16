@@ -28,8 +28,10 @@ namespace BubblePuzzle.Shooter
 
         [Header("Shooter Settings")]
         [SerializeField] private Transform shooterTransform;
+        [Range(1f, 100f)]
         [SerializeField] private float minAimDistance = 1f;
         [SerializeField] private GameObject bubblePrefab;
+        [Range(1f, 100f)]
         [SerializeField] private float shootSpeed = 10f;
         [SerializeField] private BoxCollider2D shootArea = null;
 
@@ -56,6 +58,9 @@ namespace BubblePuzzle.Shooter
                 return;
 
             if (bubbleReadyPool.IsReloading)
+                return;
+
+            if (GameManager.Instance.LevelManager.IsSpawning)
                 return;
 
             // Check if left mouse button is pressed
@@ -97,26 +102,26 @@ namespace BubblePuzzle.Shooter
         /// </summary>
         private void UpdateAiming()
         {
-            if (bubbleReadyPool.GetCurrent() == null)
+            if (bubbleReadyPool.Current() == null)
                 return;
 
             Vector2 mousePos = Mouse.current.position.ReadValue();
             Vector2 worldPos = mainCamera.ScreenToWorldPoint(mousePos);
-            Vector2 shooterPos = bubbleReadyPool.GetCurrent().transform.position;
+            Vector2 currentBubblePos = bubbleReadyPool.Current().transform.position;
 
             // Calculate aim direction
-            aimDirection = (worldPos - shooterPos).normalized;
+            aimDirection = (worldPos - currentBubblePos).normalized;
 
             // Check minimum distance
-            float distance = Vector2.Distance(worldPos, shooterPos);
-            if (distance < minAimDistance)
+            float sqrMagnitude = Vector2.SqrMagnitude(worldPos - currentBubblePos);
+            if (sqrMagnitude < minAimDistance)
             {
                 HideAimVisuals();
                 return;
             }
 
             // Calculate trajectory
-            currentTrajectory = trajectoryCalculator.CalculateTrajectory(shooterPos, aimDirection);
+            currentTrajectory = trajectoryCalculator.CalculateTrajectory(currentBubblePos, aimDirection);
 
             // Update aim guide
             if (aimGuide != null)
@@ -143,7 +148,7 @@ namespace BubblePuzzle.Shooter
             }
 
             // Calculate placement coordinate
-            HexCoordinate targetCoord = CalculatePlacementCoordinate(trajectory);
+            HexCoordinate targetCoord = CalculatePlacementCoordinate(in trajectory);
 
             // Check if position is valid (not occupied)
             if (bubbleGrid.IsOccupied(targetCoord))
@@ -163,7 +168,7 @@ namespace BubblePuzzle.Shooter
         /// <summary>
         /// Calculate placement coordinate based on collision point and trajectory direction
         /// </summary>
-        private HexCoordinate CalculatePlacementCoordinate(TrajectoryCalculator.TrajectoryResult trajectory)
+        private HexCoordinate CalculatePlacementCoordinate(in TrajectoryCalculator.TrajectoryResult trajectory)
         {
             Vector2 collisionPoint = trajectory.finalPosition;
             Vector2 hitBubbleCenter = trajectory.hitInfo.transform.position;
@@ -204,7 +209,7 @@ namespace BubblePuzzle.Shooter
             isShooting = true;
 
             // Get bubble from pool
-            Bubble.Bubble bubble = GetBubble();
+            Bubble.Bubble bubble = bubbleReadyPool?.Get();
             if (bubble == null)
             {
                 Debug.LogError("Failed to get bubble from pool!");
@@ -212,16 +217,11 @@ namespace BubblePuzzle.Shooter
                 yield break;
             }
 
-            // Get bubble component (cached in prefab, should never be null)
-            bubble.transform.position = shooterTransform.position;
-
-            bubble.SetFire();
-
             // Animate along trajectory
-            yield return LaunchBubbleAlongPath(bubble, currentTrajectory.points, shootSpeed);
+            yield return LaunchBubbleAlongPath(bubble, currentTrajectory.points);
 
             // Calculate placement position using same logic as preview
-            HexCoordinate placementCoord = CalculatePlacementCoordinate(currentTrajectory);
+            HexCoordinate placementCoord = CalculatePlacementCoordinate(in currentTrajectory);
 
             if (bubbleReadyPool)
                 bubbleReadyPool.Reload();
@@ -230,7 +230,7 @@ namespace BubblePuzzle.Shooter
             if (default(HexCoordinate).Equals(placementCoord))
             {
                 Debug.LogWarning("Grid is full - no valid placement position!");
-                BubblePoolManager.Instance.ReturnBubble(bubble);
+                bubble.ReturnToPool();
                 isShooting = false;
                 yield break;
             }
@@ -247,7 +247,7 @@ namespace BubblePuzzle.Shooter
         /// <summary>
         /// Launch bubble animation along path
         /// </summary>
-        private IEnumerator LaunchBubbleAlongPath(Bubble.Bubble bubble, Vector2[] pathPoints, float speed)
+        private IEnumerator LaunchBubbleAlongPath(Bubble.Bubble bubble, Vector2[] pathPoints)
         {
             int pointCount = pathPoints.Length;
 
@@ -256,13 +256,14 @@ namespace BubblePuzzle.Shooter
                 Vector2 start = pathPoints[i];
                 Vector2 end = pathPoints[i + 1];
                 float distance = Vector2.Distance(start, end);
-                float duration = distance / speed;
+                float duration = distance / shootSpeed;
+                float inverseDuration = shootSpeed / distance;
 
                 float elapsed = 0f;
                 while (elapsed < duration)
                 {
                     elapsed += Time.deltaTime;
-                    float t = elapsed / duration;
+                    float t = elapsed * inverseDuration;
                     bubble.transform.position = Vector2.Lerp(start, end, t);
                     yield return null;
                 }
@@ -313,7 +314,7 @@ namespace BubblePuzzle.Shooter
                     StartCoroutine(destructionHandler.MakeBubblesFall(disconnected));
                 }
 
-                LevelManager.Instance.RegenerateDynamicLevel();
+                GameManager.Instance.LevelManager.RegenerateDynamicLevel();
             }
             else
             {
@@ -321,23 +322,6 @@ namespace BubblePuzzle.Shooter
             }
 
             Debug.Log("========== GAME LOGIC END ==========\n");
-        }
-
-
-        /// <summary>
-        /// Get bubble from pool or instantiate
-        /// </summary>
-        private Bubble.Bubble GetBubble()
-        {
-            if (bubbleReadyPool != null)
-            {
-                return bubbleReadyPool.Fire();
-            }
-            else
-            {
-                Debug.LogError("No bubble prefab or pool manager!");
-                return null;
-            }
         }
 
         /// <summary>

@@ -15,6 +15,9 @@ namespace BubblePuzzle.Bubble
 
         public void Reload()
         {
+            if (!BubblePoolManager.Instance)
+                return;
+
             int currentCount = readyBubbles.Count;
             for (int num = currentCount; num < IntDefine.MAX_READY_POOL_SIZE; num++)
             {
@@ -23,7 +26,7 @@ namespace BubblePuzzle.Bubble
                 // Initialize bubble with random color (temp)
                 BubbleType randomType = (BubbleType)Random.Range(0, 5);
                 bubble.Initialize(randomType, new BubblePuzzle.Core.HexCoordinate(0, 0));
-                bubble.SetReadyFire();
+                bubble.SetActiveCollider(false);
                 bubble.gameObject.SetActive(true);
 
                 InitPosition(bubble.transform);
@@ -130,18 +133,24 @@ namespace BubblePuzzle.Bubble
             IsReloading = false;
         }
 
-        public Bubble Fire()
+        /// <summary>
+        /// Bring bubble from pooling
+        /// </summary>
+        public Bubble Get()
         {
             if (readyBubbles == null || readyBubbles.Count == 0)
                 return null;
 
             Bubble bubble = readyBubbles.Dequeue();
-            bubble.SetFire();
+            bubble.SetActiveCollider(true);
 
             return bubble;
         }
 
-        public Bubble GetCurrent()
+        /// <summary>
+        /// Get current bubble
+        /// </summary>
+        public Bubble Current()
         {
             if (readyBubbles == null || readyBubbles.Count == 0)
                 return null;

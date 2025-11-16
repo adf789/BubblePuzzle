@@ -33,8 +33,10 @@ namespace BubblePuzzle.Shooter
                 hitBubble = false
             };
 
-            List<Vector2> points = new List<Vector2>();
-            points.Add(origin);
+            List<Vector2> points = new List<Vector2>
+            {
+                origin
+            };
 
             // First raycast - check for wall or bubble
             RaycastHit2D hit = Physics2D.Raycast(origin, direction, maxDistance, wallLayer | bubbleLayer);

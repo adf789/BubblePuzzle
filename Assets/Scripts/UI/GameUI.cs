@@ -11,105 +11,25 @@ namespace BubblePuzzle.UI
     {
         [Header("UI References")]
         [SerializeField] private TextMeshProUGUI scoreText;
-        [SerializeField] private TextMeshProUGUI comboText;
+        [SerializeField] private TextMeshProUGUI bossHpText;
         [SerializeField] private TextMeshProUGUI bubblesRemainingText;
-        [SerializeField] private Image comboBar;
+        [SerializeField] private Image bossHpBarInnerground;
+        [SerializeField] private Image bossHpBar;
 
         [Header("Settings")]
-        [SerializeField] private bool showCombo = true;
-        [SerializeField] private float comboDecayTime = 3f;
+        [SerializeField] private float hpBarAnimationSpeed = 0.5f; // HP bar animation duration
 
-        private int currentScore;
-        private int currentCombo;
-        private float comboTimer;
+        // Boss HP bar animation
+        private Coroutine hpBarAnimationCoroutine;
+        private float targetHpRatio = 1f; // Target HP ratio for smooth animation transition
 
-        // Scoring
-        private const int BASE_MATCH_SCORE = 10;
-        private const int COMBO_MULTIPLIER = 5;
-        private const int FALL_BONUS = 5;
+        // Format
+        private const string BOSS_HP_FORMAT = "{0} / {1} ({2:F1}%)";
+        private const string SCORE_FORMAT = "Score: {0}";
 
-        private void Update()
+        public void SetBossHp(in BossHp bossHp)
         {
-            // Combo decay
-            if (currentCombo > 0)
-            {
-                comboTimer -= Time.deltaTime;
-                if (comboTimer <= 0f)
-                {
-                    ResetCombo();
-                }
-                UpdateComboBar();
-            }
-        }
-
-        /// <summary>
-        /// Add score from matched bubbles
-        /// </summary>
-        public void AddMatchScore(int bubbleCount)
-        {
-            int matchScore = bubbleCount * BASE_MATCH_SCORE;
-            int comboBonus = currentCombo * COMBO_MULTIPLIER;
-
-            currentScore += matchScore + comboBonus;
-            currentCombo++;
-            comboTimer = comboDecayTime;
-
-            UpdateUI();
-        }
-
-        /// <summary>
-        /// Add score from falling bubbles
-        /// </summary>
-        public void AddFallScore(int bubbleCount)
-        {
-            currentScore += bubbleCount * FALL_BONUS;
-            UpdateUI();
-        }
-
-        /// <summary>
-        /// Reset combo to zero
-        /// </summary>
-        private void ResetCombo()
-        {
-            currentCombo = 0;
-            comboTimer = 0f;
-            UpdateUI();
-        }
-
-        /// <summary>
-        /// Update all UI elements
-        /// </summary>
-        private void UpdateUI()
-        {
-            if (scoreText != null)
-            {
-                scoreText.text = $"Score: {currentScore}";
-            }
-
-            if (comboText != null && showCombo)
-            {
-                if (currentCombo > 0)
-                {
-                    comboText.text = $"Combo x{currentCombo}";
-                    comboText.gameObject.SetActive(true);
-                }
-                else
-                {
-                    comboText.gameObject.SetActive(false);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Update combo bar fill amount
-        /// </summary>
-        private void UpdateComboBar()
-        {
-            if (comboBar != null)
-            {
-                float fillAmount = comboTimer / comboDecayTime;
-                comboBar.transform.localScale = new Vector3(fillAmount, 1, 1);
-            }
+            bossHpText.text = string.Format(BOSS_HP_FORMAT, bossHp.CurrentHp, bossHp.MaxHp, bossHp.Rate * 100);
         }
 
         /// <summary>
@@ -124,30 +44,82 @@ namespace BubblePuzzle.UI
         }
 
         /// <summary>
-        /// Get current score
-        /// </summary>
-        public int GetScore()
-        {
-            return currentScore;
-        }
-
-        /// <summary>
-        /// Get current combo
-        /// </summary>
-        public int GetCombo()
-        {
-            return currentCombo;
-        }
-
-        /// <summary>
         /// Reset game stats
         /// </summary>
         public void ResetGame()
         {
-            currentScore = 0;
-            currentCombo = 0;
-            comboTimer = 0f;
-            UpdateUI();
+            targetHpRatio = 1f;
+
+            UpdateScore(0);
+            UpdateBossHp(new BossHp(1));
+        }
+
+        public void UpdateScore(int score)
+        {
+            scoreText.text = string.Format(SCORE_FORMAT, score);
+        }
+
+        /// <summary>
+        /// Update boss HP bar with smooth animation
+        /// If already animating, updates target ratio for seamless transition
+        /// </summary>
+        /// <param name="hpRatio">Target HP ratio (0.0 ~ 1.0)</param>
+        public void UpdateBossHp(in BossHp bossHp, System.Action onEventFinished = null)
+        {
+            // Update target ratio
+            targetHpRatio = bossHp.Rate;
+            SetBossHp(in bossHp);
+
+            // If animation is already running, update target and yield break new calls
+            if (hpBarAnimationCoroutine != null)
+            {
+                return; // Don't start new coroutine, let existing one continue with new target
+            }
+
+            // Start new animation coroutine
+            hpBarAnimationCoroutine = StartCoroutine(AnimateBossHpBar(onEventFinished));
+        }
+
+        /// <summary>
+        /// Animate boss HP bar to follow main HP bar with delay effect
+        /// Smoothly transitions to new target if updated during animation
+        /// </summary>
+        private System.Collections.IEnumerator AnimateBossHpBar(System.Action onEventFinished = null)
+        {
+            if (bossHpBar == null || bossHpBarInnerground == null)
+            {
+                Debug.LogWarning("[GameUI] Boss HP bar references are null!");
+                hpBarAnimationCoroutine = null;
+                yield break;
+            }
+
+            // Update main HP bar immediately
+            Vector3 targetRatio = new Vector3(targetHpRatio, 1f, 1f);
+            Vector3 currentRatio = bossHpBarInnerground.transform.localScale;
+
+            bossHpBar.transform.localScale = targetRatio;
+
+            while (Mathf.Abs(currentRatio.x - targetHpRatio) > 0.001f)
+            {
+                // Smoothly interpolate to target ratio
+                currentRatio.x = Mathf.Lerp(
+                    currentRatio.x,
+                    targetHpRatio,
+                    Time.deltaTime / hpBarAnimationSpeed
+                );
+
+                bossHpBarInnerground.transform.localScale = currentRatio;
+
+                yield return null;
+            }
+
+            // Snap to final value
+            bossHpBarInnerground.transform.localScale = new Vector3(targetHpRatio, 1f, 1f);
+
+            // Animation complete
+            hpBarAnimationCoroutine = null;
+
+            onEventFinished?.Invoke();
         }
     }
 }
