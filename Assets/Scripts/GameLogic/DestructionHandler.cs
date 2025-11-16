@@ -51,14 +51,18 @@ namespace BubblePuzzle.GameLogic
             // Categorize bubbles by type
             List<Bubble.Bubble> normalBubbles = new List<Bubble.Bubble>();
             List<Bubble.Bubble> projectileBubbles = new List<Bubble.Bubble>();
+            List<Bubble.Bubble> bombBubbles = new List<Bubble.Bubble>();
 
             foreach (Bubble.Bubble bubble in bubbles)
             {
                 if (bubble != null)
                 {
-                    // Determine bubble type event
-                    // Example: Red bubbles spawn projectiles
-                    if (ShouldSpawnProjectile(bubble))
+                    // Categorize by bubble type
+                    if (bubble.Type == BubbleType.Bomb || bubble.Type == BubbleType.LargeBomb)
+                    {
+                        bombBubbles.Add(bubble);
+                    }
+                    else if (ShouldSpawnProjectile(bubble))
                     {
                         projectileBubbles.Add(bubble);
                     }
@@ -69,7 +73,7 @@ namespace BubblePuzzle.GameLogic
                 }
             }
 
-            Debug.Log($"[DestructionHandler] Normal: {normalBubbles.Count}, Projectile: {projectileBubbles.Count}");
+            Debug.Log($"[DestructionHandler] Normal: {normalBubbles.Count}, Projectile: {projectileBubbles.Count}, Bomb: {bombBubbles.Count}");
 
             // Remove from grid first
             foreach (Bubble.Bubble bubble in bubbles)
@@ -95,6 +99,17 @@ namespace BubblePuzzle.GameLogic
             {
                 if (bubble != null)
                 {
+                    animations.Add(StartCoroutine(DestructionAnimation(bubble)));
+                }
+            }
+
+            // Bomb bubbles - explosion effect (optional) and destroy
+            foreach (Bubble.Bubble bubble in bombBubbles)
+            {
+                if (bubble != null)
+                {
+                    // TODO: Add explosion VFX here if needed
+                    Debug.Log($"[DestructionHandler] Exploding {bubble.Type} at {bubble.Coordinate}");
                     animations.Add(StartCoroutine(DestructionAnimation(bubble)));
                 }
             }
