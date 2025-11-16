@@ -9,13 +9,25 @@ namespace BubblePuzzle.Bubble
     [RequireComponent(typeof(SpriteRenderer))]
     public class Bubble : MonoBehaviour
     {
+        [SerializeField] private BubbleColorType bubbleColorType;
         [SerializeField] private BubbleType bubbleType;
         [SerializeField] private SpriteRenderer spriteRenderer;
         [SerializeField] private new Collider2D collider;
+        [SerializeField] private GameObject[] bubbleStates;
 
         private System.Action<Bubble> onEventReturnPool;
         private HexCoordinate coordinate;
         private bool isPlaced = false;
+
+        public BubbleColorType ColorType
+        {
+            get => bubbleColorType;
+            set
+            {
+                bubbleColorType = value;
+                UpdateVisual();
+            }
+        }
 
         public BubbleType Type
         {
@@ -49,27 +61,50 @@ namespace BubblePuzzle.Bubble
         /// </summary>
         private void UpdateVisual()
         {
+            UpdateBubbleColor();
+
+            UpdateBubbleState();
+        }
+
+        private void UpdateBubbleColor()
+        {
             if (spriteRenderer == null) return;
 
             // Temporary color mapping (will be replaced with sprites)
-            Color color = bubbleType switch
+            Color color = bubbleColorType switch
             {
-                BubbleType.Red => Color.red,
-                BubbleType.Blue => Color.blue,
-                BubbleType.Green => Color.green,
-                BubbleType.Yellow => Color.yellow,
-                BubbleType.Purple => new Color(0.5f, 0f, 0.5f),
+                BubbleColorType.Red => Color.red,
+                BubbleColorType.Blue => Color.blue,
+                BubbleColorType.Green => Color.green,
+                BubbleColorType.Yellow => Color.yellow,
+                BubbleColorType.Purple => new Color(0.5f, 0f, 0.5f),
                 _ => Color.white
             };
 
             spriteRenderer.color = color;
         }
 
+        private void UpdateBubbleState()
+        {
+            for (BubbleType type = BubbleType.None;
+            System.Enum.IsDefined(typeof(BubbleType), type);
+            type++)
+            {
+                int index = (int)type;
+
+                if (bubbleStates.Length <= index)
+                    break;
+
+                bubbleStates[index].SetActive(type == bubbleType);
+            }
+        }
+
         /// <summary>
         /// Initialize bubble with type and coordinate
         /// </summary>
-        public void Initialize(BubbleType type, HexCoordinate coord)
+        public void Initialize(BubbleColorType colorType, BubbleType type, HexCoordinate coord)
         {
+            ColorType = colorType;
             Type = type;
             Coordinate = coord;
             isPlaced = false;

@@ -50,7 +50,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   levelManager: {fileID: 6875097950249361092}
   uiManager: {fileID: 4142103647193713543}
-  bossHpValue: 5
+  bossHpValue: 100
 --- !u!114 &6875097950249361092
 MonoBehaviour:
   m_ObjectHideFlags: 0

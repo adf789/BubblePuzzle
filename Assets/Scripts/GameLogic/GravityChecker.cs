@@ -54,7 +54,7 @@ namespace BubblePuzzle.GameLogic
             {
                 if (!connectedToTop.Contains(bubble))
                 {
-                    Debug.Log($"[GravityChecker] -> Disconnected bubble at {bubble.Coordinate}, Type: {bubble.Type}");
+                    Debug.Log($"[GravityChecker] -> Disconnected bubble at {bubble.Coordinate}, Type: {bubble.ColorType}");
                     fallingBubbles.Add(bubble);
                 }
             }

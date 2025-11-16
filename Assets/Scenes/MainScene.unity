@@ -279,11 +279,11 @@ Transform:
   m_GameObject: {fileID: 168565936}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: -8, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1793671401}
+  m_Father: {fileID: 1019770133}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &168565938
 MonoBehaviour:
@@ -518,6 +518,53 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1793671401}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &672402558
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 672402559}
+  - component: {fileID: 672402560}
+  m_Layer: 0
+  m_Name: BubbleGrid
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &672402559
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 672402558}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 6, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1793671401}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &672402560
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 672402558}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2d6915273d8a65944bdf85317f054fd1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hexSize: 0.6
+  gridOrigin: {x: 0, y: 0}
+  isDrawGrids: 0
 --- !u!1 &1019770132
 GameObject:
   m_ObjectHideFlags: 0
@@ -549,7 +596,10 @@ Transform:
   m_LocalPosition: {x: 0, y: -8, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1120208666}
+  - {fileID: 1508652227}
+  - {fileID: 168565937}
   m_Father: {fileID: 1793671401}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1019770134
@@ -587,7 +637,7 @@ MonoBehaviour:
   trajectoryCalculator: {fileID: 1019770134}
   aimGuide: {fileID: 1120208667}
   previewFrame: {fileID: 1508652228}
-  bubbleGrid: {fileID: 1793671405}
+  bubbleGrid: {fileID: 672402560}
   matchDetector: {fileID: 1793671404}
   gravityChecker: {fileID: 1793671403}
   destructionHandler: {fileID: 1793671402}
@@ -671,11 +721,11 @@ Transform:
   m_GameObject: {fileID: 1120208665}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: -8, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1793671401}
+  m_Father: {fileID: 1019770133}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1120208667
 MonoBehaviour:
@@ -914,11 +964,11 @@ Transform:
   m_GameObject: {fileID: 1508652226}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: -8, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1793671401}
+  m_Father: {fileID: 1019770133}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1508652228
 MonoBehaviour:
@@ -1062,7 +1112,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1793671401}
   - component: {fileID: 1793671400}
-  - component: {fileID: 1793671405}
   - component: {fileID: 1793671404}
   - component: {fileID: 1793671403}
   - component: {fileID: 1793671402}
@@ -1086,7 +1135,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2d0a6a2af8293814d9902a7797029f89, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  bubbleGrid: {fileID: 1793671405}
+  bubbleGrid: {fileID: 672402560}
   bubbleReadyPool: {fileID: 168565938}
 --- !u!4 &1793671401
 Transform:
@@ -1107,11 +1156,8 @@ Transform:
   - {fileID: 165463153}
   - {fileID: 2096970062}
   - {fileID: 1019770133}
-  - {fileID: 1120208666}
-  - {fileID: 1508652227}
-  - {fileID: 168565937}
   - {fileID: 1505743069}
-  - {fileID: 1931171972}
+  - {fileID: 672402559}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1793671402
@@ -1155,7 +1201,13 @@ MonoBehaviour:
   fallDuration: 1
   fallGravity: 10
   fallRotationSpeed: 360
-  grid: {fileID: 1793671405}
+  projectilePrefab: {fileID: 7961008503042733916, guid: 81899f50c27d59a40b2f731c86394727, type: 3}
+  projectileTarget: {fileID: 672402559}
+  projectileInitialSpeed: 5
+  projectileAcceleration: 10
+  projectileMaxSpeed: 30
+  projectileRotationSpeed: 720
+  grid: {fileID: 672402560}
 --- !u!114 &1793671403
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1180,21 +1232,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0c3e0574b98eef944b8c6dca4c1957b6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &1793671405
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1793671399}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2d6915273d8a65944bdf85317f054fd1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  hexSize: 0.6
-  gridOrigin: {x: 0, y: 6}
-  isDrawGrids: 0
 --- !u!114 &1793671406
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1209,38 +1246,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   bubblePrefab: {fileID: 7654599415719636003, guid: d416d16fce554b44f8eb0d9fd0e36c68, type: 3}
   initialPoolSize: 50
-  poolParent: {fileID: 1931171972}
---- !u!1 &1931171971
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1931171972}
-  m_Layer: 0
-  m_Name: Bubbles
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1931171972
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1931171971}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1793671401}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  poolParent: {fileID: 672402559}
 --- !u!1 &1997775813
 GameObject:
   m_ObjectHideFlags: 0

@@ -11,6 +11,8 @@ namespace BubblePuzzle.Grid
     /// </summary>
     public class BubbleGrid : MonoBehaviour
     {
+        public Vector2 GridOffset => gridOrigin;
+
         [SerializeField] private float hexSize = 0.5f;
         [SerializeField] private Vector2 gridOrigin = Vector2.zero;
 
@@ -18,11 +20,9 @@ namespace BubblePuzzle.Grid
 
         public float HexSize => hexSize;
 
-        public static Vector2 GridOffset;
-
         void Awake()
         {
-            GridOffset = gridOrigin;
+            gridOrigin += new Vector2(transform.position.x, transform.position.y);
         }
 
         /// <summary>
@@ -38,7 +38,7 @@ namespace BubblePuzzle.Grid
 
             if (grid.ContainsKey(coord))
             {
-                Debug.LogWarning($"[BubbleGrid] Overwriting bubble at {coord}! Old: {grid[coord].Type}, New: {bubble.Type}");
+                Debug.LogWarning($"[BubbleGrid] Overwriting bubble at {coord}! Old: {grid[coord].ColorType}, New: {bubble.ColorType}");
             }
 
             grid[coord] = bubble;
@@ -46,7 +46,7 @@ namespace BubblePuzzle.Grid
             bubble.IsPlaced = true;
             bubble.transform.position = GetWorldPosition(coord);
 
-            Debug.Log($"[BubbleGrid] Placed bubble at {coord}, Type: {bubble.Type}, Total bubbles: {grid.Count}");
+            Debug.Log($"[BubbleGrid] Placed bubble at {coord}, Type: {bubble.ColorType}, Total bubbles: {grid.Count}");
         }
 
         /// <summary>
@@ -66,7 +66,7 @@ namespace BubblePuzzle.Grid
             {
                 var bubble = grid[coord];
                 grid.Remove(coord);
-                Debug.Log($"[BubbleGrid] Removed bubble at {coord}, Type: {bubble.Type}, Remaining bubbles: {grid.Count}");
+                Debug.Log($"[BubbleGrid] Removed bubble at {coord}, Type: {bubble.ColorType}, Remaining bubbles: {grid.Count}");
             }
             else
             {

@@ -22,6 +22,14 @@ namespace BubblePuzzle.GameLogic
         [SerializeField] private float fallGravity = 10f;
         [SerializeField] private float fallRotationSpeed = 360f;
 
+        [Header("Projectile Settings")]
+        [SerializeField] private GameObject projectilePrefab; // Prefab for flying projectile
+        [SerializeField] private Transform projectileTarget; // Target position (e.g., boss position)
+        [SerializeField] private float projectileInitialSpeed = 5f;
+        [SerializeField] private float projectileAcceleration = 10f;
+        [SerializeField] private float projectileMaxSpeed = 30f;
+        [SerializeField] private float projectileRotationSpeed = 720f;
+
         [Header("References")]
         [SerializeField] private BubbleGrid grid;
 
@@ -39,6 +47,29 @@ namespace BubblePuzzle.GameLogic
             }
 
             Debug.Log($"[DestructionHandler] Destroying {bubbles.Count} bubbles");
+
+            // Categorize bubbles by type
+            List<Bubble.Bubble> normalBubbles = new List<Bubble.Bubble>();
+            List<Bubble.Bubble> projectileBubbles = new List<Bubble.Bubble>();
+
+            foreach (Bubble.Bubble bubble in bubbles)
+            {
+                if (bubble != null)
+                {
+                    // Determine bubble type event
+                    // Example: Red bubbles spawn projectiles
+                    if (ShouldSpawnProjectile(bubble))
+                    {
+                        projectileBubbles.Add(bubble);
+                    }
+                    else
+                    {
+                        normalBubbles.Add(bubble);
+                    }
+                }
+            }
+
+            Debug.Log($"[DestructionHandler] Normal: {normalBubbles.Count}, Projectile: {projectileBubbles.Count}");
 
             // Remove from grid first
             foreach (Bubble.Bubble bubble in bubbles)
@@ -59,7 +90,8 @@ namespace BubblePuzzle.GameLogic
             // Animate destruction
             List<Coroutine> animations = new List<Coroutine>();
 
-            foreach (Bubble.Bubble bubble in bubbles)
+            // Normal destruction animation
+            foreach (Bubble.Bubble bubble in normalBubbles)
             {
                 if (bubble != null)
                 {
@@ -67,10 +99,20 @@ namespace BubblePuzzle.GameLogic
                 }
             }
 
-            if (bubbles.Count > 0)
+            // Projectile bubbles - spawn projectile and destroy
+            foreach (Bubble.Bubble bubble in projectileBubbles)
+            {
+                if (bubble != null)
+                {
+                    SpawnProjectile(bubble.transform.position);
+                    animations.Add(StartCoroutine(DestructionAnimation(bubble)));
+                }
+            }
+
+            if (projectileBubbles.Count > 0)
             {
                 int damage = 1;
-                GameManager.Instance.OnDamagedBoss(bubbles.Count * damage);
+                GameManager.Instance.OnDamagedBoss(projectileBubbles.Count * damage);
             }
 
             // Wait for delay between bubbles
@@ -79,6 +121,91 @@ namespace BubblePuzzle.GameLogic
             yield return new WaitForSeconds(waitTime);
 
             Debug.Log("---------- DESTRUCTION END ----------");
+        }
+
+        /// <summary>
+        /// Determine if bubble should spawn projectile
+        /// </summary>
+        private bool ShouldSpawnProjectile(Bubble.Bubble bubble)
+        {
+            // Modify this logic based on your game design
+            return bubble.Type == BubbleType.Fairy;
+        }
+
+        /// <summary>
+        /// Spawn a projectile at bubble position that flies to target
+        /// </summary>
+        private void SpawnProjectile(Vector3 startPosition)
+        {
+            if (projectilePrefab == null)
+            {
+                Debug.LogWarning("[DestructionHandler] Projectile prefab is null!");
+                return;
+            }
+
+            if (projectileTarget == null)
+            {
+                Debug.LogWarning("[DestructionHandler] Projectile target is null!");
+                return;
+            }
+
+            // Instantiate projectile
+            GameObject projectile = Instantiate(projectilePrefab, startPosition, Quaternion.identity);
+
+            // Start flying animation
+            StartCoroutine(ProjectileFlightAnimation(projectile, startPosition));
+        }
+
+        /// <summary>
+        /// Projectile flight animation with acceleration like a missile
+        /// </summary>
+        private IEnumerator ProjectileFlightAnimation(GameObject projectile, Vector3 startPosition)
+        {
+            if (projectile == null) yield break;
+
+            float currentSpeed = projectileInitialSpeed;
+            Vector3 currentPosition = startPosition;
+
+            while (projectile != null && projectileTarget != null)
+            {
+                // Calculate direction to target
+                Vector3 direction = (projectileTarget.position - currentPosition).normalized;
+
+                // Accelerate
+                currentSpeed += projectileAcceleration * Time.deltaTime;
+                currentSpeed = Mathf.Min(currentSpeed, projectileMaxSpeed);
+
+                // Move towards target
+                currentPosition += direction * currentSpeed * Time.deltaTime;
+                projectile.transform.position = currentPosition;
+
+                // Rotate towards direction
+                float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+                projectile.transform.rotation = Quaternion.Euler(0, 0, angle - 90f);
+
+                // Add spinning effect
+                projectile.transform.Rotate(0, 0, projectileRotationSpeed * Time.deltaTime);
+
+                // Check if reached target
+                float distanceToTarget = Vector3.Distance(currentPosition, projectileTarget.position);
+                if (distanceToTarget < 0.5f)
+                {
+                    // Reached target - apply effect here if needed
+                    Debug.Log("[DestructionHandler] Projectile reached target!");
+
+                    // Destroy projectile
+                    Destroy(projectile);
+                    yield break;
+                }
+
+                yield return null;
+            }
+
+            // Cleanup if something went wrong
+            if (projectile != null)
+            {
+                Destroy(projectile);
+            }
         }
 
         /// <summary>

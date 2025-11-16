@@ -94,7 +94,7 @@ namespace BubblePuzzle.Core
                 for (int q = 0; q < row.Length; q++)
                 {
                     char c = row[q];
-                    BubbleType? type = LevelPattern.ParseBubbleType(c);
+                    BubbleColorType? type = LevelPattern.ParseBubbleType(c);
 
                     if (type.HasValue)
                     {
@@ -108,13 +108,21 @@ namespace BubblePuzzle.Core
         /// <summary>
         /// Spawn bubble at coordinate
         /// </summary>
-        private void SpawnBubble(HexCoordinate coord, BubbleType type)
+        private void SpawnBubble(HexCoordinate coord, BubbleColorType type)
         {
             Bubble.Bubble bubble = BubblePoolManager.Instance?.GetBubble();
+            int randomValue = Random.Range(0, 100);
+            BubbleType randomType = randomValue switch
+            {
+                < 60 => BubbleType.None,
+                >= 60 and < 80 => BubbleType.Fairy,
+                >= 80 and <= 99 => BubbleType.Bomb,
+                _ => BubbleType.None,
+            };
 
             if (bubble != null)
             {
-                bubble.Initialize(type, coord);
+                bubble.Initialize(type, randomType, coord);
                 bubbleGrid.PlaceBubble(coord, bubble);
             }
         }

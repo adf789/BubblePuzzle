@@ -24,8 +24,9 @@ namespace BubblePuzzle.Bubble
                 Bubble bubble = BubblePoolManager.Instance.GetBubble();
 
                 // Initialize bubble with random color (temp)
-                BubbleType randomType = (BubbleType)Random.Range(0, 5);
-                bubble.Initialize(randomType, new BubblePuzzle.Core.HexCoordinate(0, 0));
+                BubbleColorType randomType = (BubbleColorType)Random.Range(0, 5);
+                BubbleType bubbleType = BubbleType.None;
+                bubble.Initialize(randomType, bubbleType, new BubblePuzzle.Core.HexCoordinate(0, 0));
                 bubble.SetActiveCollider(false);
                 bubble.gameObject.SetActive(true);
 

@@ -15,6 +15,8 @@ namespace BubblePuzzle.UI
         [SerializeField] private Color frameColor = new Color(1f, 1f, 1f, 0.5f);
         [SerializeField] private float lineWidth = 0.05f;
 
+        private Vector3 gridOffset;
+
         private void Awake()
         {
             if (lineRenderer == null)
@@ -24,6 +26,11 @@ namespace BubblePuzzle.UI
 
             SetupLineRenderer();
             Hide();
+        }
+
+        public void SetGridOffset(Vector3 gridOffset)
+        {
+            this.gridOffset = gridOffset;
         }
 
         private void SetupLineRenderer()
@@ -66,7 +73,6 @@ namespace BubblePuzzle.UI
         public void ShowAtCoordinate(HexCoordinate coord, float hexSize)
         {
             Vector2 worldPos = coord.ToWorldPosition(hexSize);
-            Vector3 gridOffset = BubbleGrid.GridOffset;
             transform.position = new Vector3(worldPos.x, worldPos.y, 0f) + gridOffset;
             Show();
         }

@@ -43,6 +43,11 @@ namespace BubblePuzzle.Shooter
         private Vector2 aimDirection;
         private TrajectoryCalculator.TrajectoryResult currentTrajectory;
 
+        void Awake()
+        {
+            previewFrame.SetGridOffset(bubbleGrid.GridOffset);
+        }
+
         private void Update()
         {
             HandleAimingInput();
@@ -279,7 +284,7 @@ namespace BubblePuzzle.Shooter
         private IEnumerator ProcessGameLogic(Bubble.Bubble placedBubble)
         {
             Debug.Log("========== GAME LOGIC START ==========");
-            Debug.Log($"[ProcessGameLogic] Placed bubble at {placedBubble.Coordinate}, Type: {placedBubble.Type}");
+            Debug.Log($"[ProcessGameLogic] Placed bubble at {placedBubble.Coordinate}, Type: {placedBubble.ColorType}");
 
             // Notify GameManager of placement
             GameManager.Instance?.OnBubblePlaced();

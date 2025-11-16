@@ -96,7 +96,7 @@ namespace BubblePuzzle.Core
 
             // Start partial regeneration
             Debug.Log("[DynamicLevelSpawner] Starting partial regeneration for missing segments...");
-            for (int i = 0; i < pathIndices.Count; i++)
+            for (int i = 0; pathIndices != null && i < pathIndices.Count; i++)
             {
                 StartCoroutine(RegenerateMissingSegments(pathIndices[i]));
             }
@@ -408,11 +408,20 @@ namespace BubblePuzzle.Core
             if (bubble != null)
             {
                 // Random color
-                BubbleType randomType = (BubbleType)Random.Range(0, 5);
-                bubble.Initialize(randomType, coord);
+                BubbleColorType randomColorType = (BubbleColorType)Random.Range(0, 5);
+                int randomValue = Random.Range(0, 100);
+                BubbleType randomType = randomValue switch
+                {
+                    < 60 => BubbleType.None,
+                    >= 60 and < 80 => BubbleType.Fairy,
+                    >= 80 and <= 99 => BubbleType.Bomb,
+                    _ => BubbleType.None,
+                };
+
+                bubble.Initialize(randomColorType, randomType, coord);
                 bubble.gameObject.SetActive(true);
 
-                Debug.Log($"[DynamicLevelSpawner] Created bubble at {coord}, Type: {randomType}");
+                Debug.Log($"[DynamicLevelSpawner] Created bubble at {coord}, ColorType: {randomColorType}, Type: {randomType}");
             }
 
             return bubble;

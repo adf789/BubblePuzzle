@@ -24,7 +24,7 @@ namespace BubblePuzzle.GameLogic
                 return new List<Bubble.Bubble>();
             }
 
-            Debug.Log($"[MatchDetector] Starting BFS from {startBubble.Coordinate}, Type: {startBubble.Type}");
+            Debug.Log($"[MatchDetector] Starting BFS from {startBubble.Coordinate}, Type: {startBubble.ColorType}");
 
             Queue<Bubble.Bubble> queue = new Queue<Bubble.Bubble>();
             HashSet<Bubble.Bubble> visited = new HashSet<Bubble.Bubble>();
@@ -48,7 +48,7 @@ namespace BubblePuzzle.GameLogic
 
                 foreach (Bubble.Bubble neighbor in neighbors)
                 {
-                    if (!visited.Contains(neighbor) && neighbor.Type == startBubble.Type)
+                    if (!visited.Contains(neighbor) && neighbor.ColorType == startBubble.ColorType)
                     {
                         Debug.Log($"[MatchDetector]   -> Adding matching neighbor at {neighbor.Coordinate}");
                         visited.Add(neighbor);
@@ -62,7 +62,7 @@ namespace BubblePuzzle.GameLogic
             // Return cluster only if matches minimum count
             if (cluster.Count >= IntDefine.MIN_MATCH_COUNT)
             {
-                Debug.Log($"[MatchDetector] ✓ MATCH FOUND! {cluster.Count} {startBubble.Type} bubbles");
+                Debug.Log($"[MatchDetector] ✓ MATCH FOUND! {cluster.Count} {startBubble.ColorType} bubbles");
                 string coords = "";
                 foreach (var b in cluster)
                     coords += $"{b.Coordinate} ";

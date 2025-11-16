@@ -19,11 +19,11 @@ namespace BubblePuzzle.Core
         public int ColumnsPerRow = 7;
 
         [Header("Bubble Colors")]
-        public BubbleType[] AvailableColors = new BubbleType[]
+        public BubbleColorType[] AvailableColors = new BubbleColorType[]
         {
-            BubbleType.Red,
-            BubbleType.Blue,
-            BubbleType.Green
+            BubbleColorType.Red,
+            BubbleColorType.Blue,
+            BubbleColorType.Green
         };
 
         [Header("Win Condition")]
@@ -37,10 +37,10 @@ namespace BubblePuzzle.Core
         /// <summary>
         /// Get random bubble type from available colors
         /// </summary>
-        public BubbleType GetRandomBubbleType()
+        public BubbleColorType GetRandomBubbleType()
         {
             if (AvailableColors.Length == 0)
-                return BubbleType.Red;
+                return BubbleColorType.Red;
 
             int index = Random.Range(0, AvailableColors.Length);
             return AvailableColors[index];
@@ -59,15 +59,15 @@ namespace BubblePuzzle.Core
         /// <summary>
         /// Parse character to bubble type
         /// </summary>
-        public static BubbleType? ParseBubbleType(char c)
+        public static BubbleColorType? ParseBubbleType(char c)
         {
             return c switch
             {
-                'R' or 'r' => BubbleType.Red,
-                'B' or 'b' => BubbleType.Blue,
-                'G' or 'g' => BubbleType.Green,
-                'Y' or 'y' => BubbleType.Yellow,
-                'P' or 'p' => BubbleType.Purple,
+                'R' or 'r' => BubbleColorType.Red,
+                'B' or 'b' => BubbleColorType.Blue,
+                'G' or 'g' => BubbleColorType.Green,
+                'Y' or 'y' => BubbleColorType.Yellow,
+                'P' or 'p' => BubbleColorType.Purple,
                 '-' or ' ' => null,
                 _ => null
             };
