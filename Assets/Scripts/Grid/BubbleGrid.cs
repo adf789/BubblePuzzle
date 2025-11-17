@@ -45,6 +45,7 @@ namespace BubblePuzzle.Grid
             bubble.Coordinate = coord;
             bubble.IsPlaced = true;
             bubble.transform.position = GetWorldPosition(coord);
+            bubble.SetActiveCollider(true);
 
             Debug.Log($"[BubbleGrid] Placed bubble at {coord}, Type: {bubble.ColorType}, Total bubbles: {grid.Count}");
         }
@@ -66,35 +67,76 @@ namespace BubblePuzzle.Grid
             {
                 var bubble = grid[coord];
                 grid.Remove(coord);
-                Debug.Log($"[BubbleGrid] Removed bubble at {coord}, Type: {bubble.ColorType}, Remaining bubbles: {grid.Count}");
-            }
-            else
-            {
-                Debug.LogWarning($"[BubbleGrid] Attempted to remove non-existent bubble at {coord}");
+
+                bubble?.SetActiveCollider(false);
             }
         }
 
         /// <summary>
-        /// Get all 6 neighbors of a coordinate
+        /// Get all neighbors of a coordinate by depth
         /// </summary>
-        public List<Bubble.Bubble> GetNeighbors(HexCoordinate coord)
+        public IEnumerable<Bubble.Bubble> GetNeighbors(HexCoordinate coord, int depth = 1)
         {
-            List<Bubble.Bubble> neighbors = new List<Bubble.Bubble>();
+            if (depth <= 0)
+                yield break;
 
+            HashSet<HexCoordinate> checkSet = new() { coord };
+
+            foreach (var bubble in GetNeighborsWithSelf(coord, depth, checkSet))
+            {
+                yield return bubble;
+            }
+        }
+
+        /// <summary>
+        /// Get all neighbors of a coordinate recursive
+        /// </summary>
+        public IEnumerable<Bubble.Bubble> GetNeighborsWithSelf(HexCoordinate coord, int depth, HashSet<HexCoordinate> checkSet)
+        {
+            if (depth <= 0)
+                yield break;
+
+            // Return self
+            if (!checkSet.Contains(coord))
+            {
+                checkSet.Add(coord);
+                Bubble.Bubble neighbor = GetBubble(coord);
+
+                if (neighbor != null)
+                    yield return neighbor;
+            }
+
+            // Return neighbors
             for (HexCoordinate.Direction dir = HexCoordinate.Direction.TopRight;
             Enum.IsDefined(typeof(HexCoordinate.Direction), dir);
             dir++)
             {
                 HexCoordinate neighborCoord = coord.GetNeighbor(dir);
-                Bubble.Bubble neighbor = GetBubble(neighborCoord);
 
-                if (neighbor != null)
+                if (!checkSet.Contains(neighborCoord))
                 {
-                    neighbors.Add(neighbor);
+                    checkSet.Add(neighborCoord);
+                    Bubble.Bubble neighbor = GetBubble(neighborCoord);
+
+                    if (neighbor != null)
+                        yield return neighbor;
                 }
             }
 
-            return neighbors;
+            if (depth <= 1)
+                yield break;
+
+            // Return neighbor children
+            for (HexCoordinate.Direction dir = HexCoordinate.Direction.TopRight;
+            Enum.IsDefined(typeof(HexCoordinate.Direction), dir);
+            dir++)
+            {
+                HexCoordinate neighborCoord = coord.GetNeighbor(dir);
+                foreach (var bubble in GetNeighborsWithSelf(neighborCoord, depth - 1, checkSet))
+                {
+                    yield return bubble;
+                }
+            }
         }
 
         /// <summary>

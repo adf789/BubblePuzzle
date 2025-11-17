@@ -7,6 +7,7 @@ using BubblePuzzle.Grid;
 using BubblePuzzle.UI;
 using BubblePuzzle.Bubble;
 using BubblePuzzle.GameLogic;
+using TMPro;
 
 namespace BubblePuzzle.Shooter
 {
@@ -15,83 +16,201 @@ namespace BubblePuzzle.Shooter
     /// </summary>
     public class BubbleShooter : MonoBehaviour
     {
+        public int RemainShotCount { get; private set; }
+
         [Header("References")]
         [SerializeField] private Camera mainCamera;
         [SerializeField] private TrajectoryCalculator trajectoryCalculator;
         [SerializeField] private AimGuide aimGuide;
         [SerializeField] private PreviewFrame previewFrame;
         [SerializeField] private BubbleGrid bubbleGrid;
-        [SerializeField] private MatchDetector matchDetector;
-        [SerializeField] private GravityChecker gravityChecker;
-        [SerializeField] private DestructionHandler destructionHandler;
         [SerializeField] private BubbleReadyPool bubbleReadyPool;
+        [SerializeField] private SacrificeBubble sacrificeBubble;
+
+        [Header("UI")]
+        [SerializeField] private TextMeshPro remainBubbleText;
+
+        [Header("Touch Area")]
+        [SerializeField] private BoxCollider2D shootArea = null;
+        [SerializeField] private BoxCollider2D rotateArea = null;
 
         [Header("Shooter Settings")]
+        [SerializeField] private GameObject bubblePrefab;
         [SerializeField] private Transform shooterTransform;
         [Range(1f, 100f)]
         [SerializeField] private float minAimDistance = 1f;
-        [SerializeField] private GameObject bubblePrefab;
         [Range(1f, 100f)]
         [SerializeField] private float shootSpeed = 10f;
-        [SerializeField] private BoxCollider2D shootArea = null;
 
         [Header("Debug")]
         [SerializeField] private bool showDebugGizmos = true;
 
         private bool isShooting;
         private bool isAiming;
+        private bool isInput;
+        private bool isReadyRotate;
+        private bool isLock;
         private Vector2 aimDirection;
+        private System.Func<Bubble.Bubble, IEnumerator> afterShootCoroutine;
         private TrajectoryCalculator.TrajectoryResult currentTrajectory;
 
-        void Awake()
+        public void Initialize(int shotCount)
         {
-            previewFrame.SetGridOffset(bubbleGrid.GridOffset);
+            SetRemainShotCount(shotCount);
+            SetLock(false);
+
+            bubbleReadyPool.SetEventGetBubble(() => SetRemainShotCount(RemainShotCount - 1));
+            bubbleReadyPool.Reload();
+        }
+
+        public void SetEventAfterShootCoroutine(System.Func<Bubble.Bubble, IEnumerator> coroutine)
+        {
+            afterShootCoroutine = coroutine;
+        }
+
+        public void SetEventSacrificeBubble(System.Action onEvent)
+        {
+            sacrificeBubble.SetEventSacrificeBubble(onEvent);
+        }
+
+        public void SetRemainShotCount(int remainShotCount)
+        {
+            RemainShotCount = Mathf.Max(0, remainShotCount);
+
+            remainBubbleText.text = RemainShotCount.ToString();
+        }
+
+        public void SetLock(bool isLock)
+        {
+            this.isLock = isLock;
+        }
+
+        private void Awake()
+        {
+            previewFrame.SetGrid(bubbleGrid);
         }
 
         private void Update()
         {
-            HandleAimingInput();
+            if (isLock)
+                return;
+
+            if (HandleInput())
+            {
+                var touchPos = GetTouchPosition();
+                bool checkTouchInShoot = CheckTouchInArea(in touchPos, shootArea);
+                bool checkTouchInRotate = CheckTouchInArea(in touchPos, rotateArea);
+
+                // 클릭의 경우
+                if (!isInput)
+                {
+                    HandleAimingPointDown(checkTouchInShoot);
+                    HandleRotatePointDown(checkTouchInRotate);
+                }
+                // 지속 업데이트의 경우
+                else
+                {
+                    HandleAimingPointMove(checkTouchInShoot);
+                    HandleRotatePointMove(checkTouchInRotate);
+                }
+
+                isInput = true;
+            }
+            else if (isInput)
+            {
+                var touchPos = GetTouchPosition();
+                bool checkTouchInShoot = CheckTouchInArea(in touchPos, shootArea);
+                bool checkTouchInRotate = CheckTouchInArea(in touchPos, rotateArea);
+
+                HandleAimingPointUp(checkTouchInShoot);
+                HandleRotatePointUp(checkTouchInRotate);
+
+                isInput = false;
+            }
         }
 
-        /// <summary>
-        /// Handle mouse input for aiming
-        /// </summary>
-        private void HandleAimingInput()
+        private bool HandleInput()
         {
             // Don't allow aiming while shooting
             if (isShooting)
-                return;
+                return false;
 
             if (bubbleReadyPool.IsReloading)
-                return;
+                return false;
 
             if (GameManager.Instance.LevelManager.IsSpawning)
-                return;
+                return false;
 
             // Check if left mouse button is pressed
             bool isMousePressed = Mouse.current.leftButton.isPressed;
 
-            if (isMousePressed)
+            return isMousePressed;
+        }
+
+        private void HandleAimingPointDown(bool touchInArea)
+        {
+            if (touchInArea)
             {
                 if (!isAiming)
-                {
                     StartAiming();
-                }
-
-                if (CheckTouchInShootArea())
-                    UpdateAiming();
-                else
-                    HideAimVisuals();
             }
             else
             {
-                if (isAiming && CheckTouchInShootArea())
-                {
-                    Shoot();
-                }
-
-                StopAiming();
+                if (isAiming)
+                    StopAiming();
             }
+        }
+
+        private void HandleAimingPointMove(bool touchInArea)
+        {
+            if (!isAiming)
+                return;
+
+            if (touchInArea)
+            {
+                UpdateAiming();
+            }
+            else
+            {
+                if (isAiming)
+                    StopAiming();
+
+                HideAimVisuals();
+            }
+        }
+
+        private void HandleAimingPointUp(bool touchInArea)
+        {
+            if (!isAiming)
+                return;
+
+            if (touchInArea)
+                Shoot();
+
+            StopAiming();
+        }
+
+        private void HandleRotatePointDown(bool touchInArea)
+        {
+            if (touchInArea)
+                isReadyRotate = true;
+        }
+
+        private void HandleRotatePointMove(bool touchInArea)
+        {
+            if (!touchInArea)
+                isReadyRotate = false;
+        }
+
+        private void HandleRotatePointUp(bool touchInArea)
+        {
+            if (isReadyRotate && touchInArea)
+            {
+                bubbleReadyPool.Rotate();
+                bubbleReadyPool.StartReplace();
+            }
+
+            isReadyRotate = false;
         }
 
         /// <summary>
@@ -135,13 +254,14 @@ namespace BubblePuzzle.Shooter
             }
 
             // Update preview frame
-            UpdatePreviewFrame(in currentTrajectory);
+            BubbleType bubbleType = bubbleReadyPool.Current().Type;
+            UpdatePreviewFrame(bubbleType, in currentTrajectory);
         }
 
         /// <summary>
         /// Update hexagonal preview frame position
         /// </summary>
-        private void UpdatePreviewFrame(in TrajectoryCalculator.TrajectoryResult trajectory)
+        private void UpdatePreviewFrame(BubbleType previewType, in TrajectoryCalculator.TrajectoryResult trajectory)
         {
             if (previewFrame == null || bubbleGrid == null)
                 return;
@@ -155,18 +275,7 @@ namespace BubblePuzzle.Shooter
             // Calculate placement coordinate
             HexCoordinate targetCoord = CalculatePlacementCoordinate(in trajectory);
 
-            // Check if position is valid (not occupied)
-            if (bubbleGrid.IsOccupied(targetCoord))
-            {
-                // Show red frame for invalid position
-                previewFrame.SetColor(new Color(1f, 0f, 0f, 0.5f));
-            }
-            else
-            {
-                // Show white frame for valid position
-                previewFrame.SetColor(new Color(1f, 1f, 1f, 0.5f));
-            }
-
+            previewFrame.SetPreviewType(previewType);
             previewFrame.ShowAtCoordinate(targetCoord, bubbleGrid.HexSize);
         }
 
@@ -211,6 +320,15 @@ namespace BubblePuzzle.Shooter
         /// </summary>
         private IEnumerator ShootBubbleCoroutine()
         {
+            if (afterShootCoroutine == null)
+            {
+                Debug.LogError("After shoot coroutine is null.");
+                yield break;
+            }
+
+            if (RemainShotCount <= 0)
+                yield break;
+
             isShooting = true;
 
             // Get bubble from pool
@@ -221,6 +339,19 @@ namespace BubblePuzzle.Shooter
                 isShooting = false;
                 yield break;
             }
+
+            // Check if shooting LargeBomb - reset save controller
+            if (bubble.Type == BubbleType.LargeBomb)
+            {
+                if (sacrificeBubble != null)
+                {
+                    sacrificeBubble.ResetValues();
+                    Debug.Log("[BubbleShooter] LargeBomb shot - BubbleSaveController reset");
+                }
+            }
+
+            // Lock sacrifice bubble
+            sacrificeBubble.SetLock(true);
 
             // Animate along trajectory
             yield return LaunchBubbleAlongPath(bubble, currentTrajectory.points);
@@ -236,6 +367,7 @@ namespace BubblePuzzle.Shooter
             {
                 Debug.LogWarning("Grid is full - no valid placement position!");
                 bubble.ReturnToPool();
+                sacrificeBubble.SetLock(false);
                 isShooting = false;
                 yield break;
             }
@@ -244,8 +376,9 @@ namespace BubblePuzzle.Shooter
             bubbleGrid.PlaceBubble(placementCoord, bubble);
 
             // Process game logic
-            yield return ProcessGameLogic(bubble);
+            yield return afterShootCoroutine(bubble);
 
+            sacrificeBubble.SetLock(false);
             isShooting = false;
         }
 
@@ -279,57 +412,6 @@ namespace BubblePuzzle.Shooter
         }
 
         /// <summary>
-        /// Process game logic after bubble placement
-        /// </summary>
-        private IEnumerator ProcessGameLogic(Bubble.Bubble placedBubble)
-        {
-            Debug.Log("========== GAME LOGIC START ==========");
-            Debug.Log($"[ProcessGameLogic] Placed bubble at {placedBubble.Coordinate}, Type: {placedBubble.ColorType}");
-
-            // Notify GameManager of placement
-            GameManager.Instance?.OnBubblePlaced();
-
-            // Step 1: Check for matches
-            Debug.Log("[ProcessGameLogic] Step 1: Checking for matches...");
-            var matches = matchDetector.FindMatchingCluster(placedBubble, bubbleGrid);
-            Debug.Log($"[ProcessGameLogic] Found {matches.Count} matching bubbles");
-
-            if (matches.Count > 0)
-            {
-                // Notify GameManager of match
-                GameManager.Instance?.OnMatchScored(matches.Count);
-
-                // Step 2: Destroy matched bubbles
-                Debug.Log("[ProcessGameLogic] Step 2: Destroying matched bubbles...");
-                yield return destructionHandler.DestroyBubbles(matches);
-                Debug.Log("[ProcessGameLogic] Destruction complete");
-
-                // Step 3: Check for disconnected bubbles
-                Debug.Log("[ProcessGameLogic] Step 3: Checking for disconnected bubbles...");
-                var disconnected = gravityChecker.GetDisconnectedBubbles(bubbleGrid);
-                Debug.Log($"[ProcessGameLogic] Found {disconnected.Count} disconnected bubbles");
-
-                if (disconnected.Count > 0)
-                {
-                    // Notify GameManager of fall
-                    GameManager.Instance?.OnBubblesFallen(disconnected.Count);
-
-                    // Step 4: Make them fall
-                    Debug.Log("[ProcessGameLogic] Step 4: Making bubbles fall...");
-                    StartCoroutine(destructionHandler.MakeBubblesFall(disconnected));
-                }
-
-                GameManager.Instance.LevelManager.RegenerateDynamicLevel();
-            }
-            else
-            {
-                Debug.Log("[ProcessGameLogic] No matches found, skipping destruction");
-            }
-
-            Debug.Log("========== GAME LOGIC END ==========\n");
-        }
-
-        /// <summary>
         /// Stop aiming mode
         /// </summary>
         private void StopAiming()
@@ -350,27 +432,24 @@ namespace BubblePuzzle.Shooter
                 previewFrame.Hide();
         }
 
-        /// <summary>
-        /// Get current shooter position
-        /// </summary>
-        public Vector2 GetShooterPosition()
+        private Vector2 GetTouchPosition()
         {
-            return shooterTransform.position;
+            var position = Mouse.current.position.ReadValue();
+
+            return mainCamera.ScreenToWorldPoint(position);
         }
 
-        private bool CheckTouchInShootArea()
+        private bool CheckTouchInArea(in Vector2 touchPos, BoxCollider2D area)
         {
-            if (!shootArea)
-                return true;
+            if (!area)
+                return false;
 
-            var position = Mouse.current.position.ReadValue();
-            Vector2 worldPos = mainCamera.ScreenToWorldPoint(position);
-            var bounds = shootArea.bounds;
+            var bounds = area.bounds;
 
-            return bounds.min.x <= worldPos.x
-            && bounds.max.x >= worldPos.x
-            && bounds.min.y <= worldPos.y
-            && bounds.max.y >= worldPos.y;
+            return bounds.min.x <= touchPos.x
+            && bounds.max.x >= touchPos.x
+            && bounds.min.y <= touchPos.y
+            && bounds.max.y >= touchPos.y;
         }
 
 #if UNITY_EDITOR

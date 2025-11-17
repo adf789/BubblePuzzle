@@ -87,7 +87,7 @@ namespace BubblePuzzle.GameLogic
             visited.Add(current);
 
             // Visit all 6 neighbors
-            List<Bubble.Bubble> neighbors = grid.GetNeighbors(current.Coordinate);
+            var neighbors = grid.GetNeighbors(current.Coordinate);
 
             foreach (Bubble.Bubble neighbor in neighbors)
             {

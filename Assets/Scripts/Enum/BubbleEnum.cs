@@ -4,9 +4,7 @@ namespace BubblePuzzle.Bubble
     {
         Red,
         Blue,
-        Green,
         Yellow,
-        Purple
     }
 
     public enum BubbleType

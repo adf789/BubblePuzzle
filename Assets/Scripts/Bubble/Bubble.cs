@@ -9,6 +9,20 @@ namespace BubblePuzzle.Bubble
     [RequireComponent(typeof(SpriteRenderer))]
     public class Bubble : MonoBehaviour
     {
+        public BubbleColorType ColorType => bubbleColorType;
+        public BubbleType Type => bubbleType;
+        public HexCoordinate Coordinate
+        {
+            get => coordinate;
+            set => coordinate = value;
+        }
+        public bool IsPlaced
+        {
+            get => isPlaced;
+            set => isPlaced = value;
+        }
+        public bool IsBomb => Type == BubbleType.Bomb || Type == BubbleType.LargeBomb;
+
         [SerializeField] private BubbleColorType bubbleColorType;
         [SerializeField] private BubbleType bubbleType;
         [SerializeField] private SpriteRenderer spriteRenderer;
@@ -18,38 +32,6 @@ namespace BubblePuzzle.Bubble
         private System.Action<Bubble> onEventReturnPool;
         private HexCoordinate coordinate;
         private bool isPlaced = false;
-
-        public BubbleColorType ColorType
-        {
-            get => bubbleColorType;
-            set
-            {
-                bubbleColorType = value;
-                UpdateVisual();
-            }
-        }
-
-        public BubbleType Type
-        {
-            get => bubbleType;
-            set
-            {
-                bubbleType = value;
-                UpdateVisual();
-            }
-        }
-
-        public HexCoordinate Coordinate
-        {
-            get => coordinate;
-            set => coordinate = value;
-        }
-
-        public bool IsPlaced
-        {
-            get => isPlaced;
-            set => isPlaced = value;
-        }
 
         private void Start()
         {
@@ -75,9 +57,7 @@ namespace BubblePuzzle.Bubble
             {
                 BubbleColorType.Red => Color.red,
                 BubbleColorType.Blue => Color.blue,
-                BubbleColorType.Green => Color.green,
                 BubbleColorType.Yellow => Color.yellow,
-                BubbleColorType.Purple => new Color(0.5f, 0f, 0.5f),
                 _ => Color.white
             };
 
@@ -102,10 +82,9 @@ namespace BubblePuzzle.Bubble
         /// <summary>
         /// Initialize bubble with type and coordinate
         /// </summary>
-        public void Initialize(BubbleColorType colorType, BubbleType type, HexCoordinate coord)
+        public void Initialize(BubbleType type, BubbleColorType colorType, HexCoordinate coord)
         {
-            ColorType = colorType;
-            Type = type;
+            SetType(type, colorType);
             Coordinate = coord;
             isPlaced = false;
         }
@@ -131,6 +110,18 @@ namespace BubblePuzzle.Bubble
             {
                 Destroy(gameObject);
             }
+        }
+
+        public void SetType(BubbleType type, BubbleColorType colorType)
+        {
+            bubbleType = type;
+
+            if (bubbleType == BubbleType.LargeBomb)
+                bubbleColorType = BubbleColorType.Red;
+            else
+                bubbleColorType = colorType;
+
+            UpdateVisual();
         }
 
         public void SetActiveCollider(bool isActive)

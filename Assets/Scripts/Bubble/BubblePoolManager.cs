@@ -98,7 +98,10 @@ namespace BubblePuzzle.Bubble
                 bubble = CreateNewBubble();
             }
 
-            bubble.gameObject.SetActive(true);
+            bubble.transform.position = Vector3.zero;
+            bubble.transform.rotation = Quaternion.identity;
+            bubble.transform.localScale = Vector3.one;
+
             return bubble;
         }
 

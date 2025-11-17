@@ -13,6 +13,8 @@ namespace BubblePuzzle.Core
         public BubbleSpawnPath[] SpawnPaths => spawnPaths;
         public int MaxSpawnCount => maxSpawnCount;
         public int MinSpawnCount => minSpawnCount;
+        public int BubbleShotCount => bubbleShotCount;
+        public int BossHpValue => bossHpValue;
         public float MoveSpeed => moveSpeed;
         public HexCoordinate CenterPosition => centerPosition;
 
@@ -24,6 +26,12 @@ namespace BubblePuzzle.Core
         [Tooltip("Spawn max and min count")]
         [SerializeField] private int maxSpawnCount;
         [SerializeField] private int minSpawnCount;
+        [Range(1, 100)]
+        [SerializeField] private int bubbleShotCount;
+
+        [Header("HP Settings")]
+        [Tooltip("Victory condition")]
+        [SerializeField] private int bossHpValue;
 
         [Header("Animation Settings")]
         [Tooltip("Time in seconds for each bubble movement step")]
@@ -138,43 +146,13 @@ namespace BubblePuzzle.Core
                 if (spawnPaths[i].directions.Length == maxSpawnCount)
                     continue;
 
-                var newDirections = new HexCoordinate.Direction[maxSpawnCount];
-                int minCount = Mathf.Min(spawnPaths[i].directions.Length, maxSpawnCount);
+                var newDirections = new HexCoordinate.Direction[maxSpawnCount - 1];
+                int minCount = Mathf.Min(spawnPaths[i].directions.Length, newDirections.Length);
 
                 System.Array.Copy(spawnPaths[i].directions, newDirections, minCount);
 
                 spawnPaths[i].directions = newDirections;
             }
-        }
-        /// <summary>
-        /// Validate and log path information
-        /// </summary>
-        [ContextMenu("Validate Paths")]
-        public void ValidatePathsMenu()
-        {
-            Debug.Log("========== LEVEL PATH DATA VALIDATION ==========");
-            Debug.Log($"Total Paths: {GetPathCount()}");
-
-            for (int i = 0; i < GetPathCount(); i++)
-            {
-                Debug.Log($"Path {i}: {spawnPaths[i].GetSummary()}");
-
-                // Log first few coordinates
-                var coords = GetCoordinatesForPath(i);
-                string coordsPreview = "";
-                for (int j = 0; j < Mathf.Min(5, coords.Count); j++)
-                {
-                    coordsPreview += $"{coords[j]} ";
-                }
-                if (coords.Count > 5)
-                    coordsPreview += "...";
-
-                Debug.Log($"  First coordinates: {coordsPreview}");
-            }
-
-            bool isValid = ValidateAllPaths();
-            Debug.Log($"Validation Result: {(isValid ? "✓ VALID" : "✗ INVALID")}");
-            Debug.Log("================================================");
         }
 #endif
     }

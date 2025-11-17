@@ -8,6 +8,7 @@ public class BossHp
     public int CurrentHp { get; set; }
 
     public float Rate => Mathf.Clamp01((float)CurrentHp / MaxHp);
+    public bool IsDeath => CurrentHp <= 0;
 
     public BossHp(int hp)
     {

@@ -11,7 +11,13 @@ namespace BubblePuzzle.Bubble
     {
         public bool IsReloading { get; private set; }
         private Queue<Bubble> readyBubbles = new Queue<Bubble>();
+        private System.Action onEventGetBubble = null;
         private readonly int CIRCLE_RADIUS = 1;
+
+        public void SetEventGetBubble(System.Action onEvent)
+        {
+            onEventGetBubble = onEvent;
+        }
 
         public void Reload()
         {
@@ -24,36 +30,31 @@ namespace BubblePuzzle.Bubble
                 Bubble bubble = BubblePoolManager.Instance.GetBubble();
 
                 // Initialize bubble with random color (temp)
-                BubbleColorType randomType = (BubbleColorType)Random.Range(0, 5);
+                BubbleColorType randomType = (BubbleColorType)Random.Range(0, IntDefine.MAX_BUBBLE_COLOR_COUNT);
                 BubbleType bubbleType = BubbleType.None;
-                bubble.Initialize(randomType, bubbleType, new BubblePuzzle.Core.HexCoordinate(0, 0));
+                Core.HexCoordinate coordinate = new Core.HexCoordinate(0, 0);
+                bubble.Initialize(bubbleType, randomType, coordinate);
                 bubble.SetActiveCollider(false);
+                bubble.transform.position = transform.position;
                 bubble.gameObject.SetActive(true);
-
-                InitPosition(bubble.transform);
 
                 readyBubbles.Enqueue(bubble);
             }
 
-            StartCoroutine(Replace());
+            StartReplace();
         }
 
-        private void InitPosition(Transform bubbleTransform)
+        public void Rotate()
         {
-            if (bubbleTransform == null)
+            if (readyBubbles.Count == 0)
                 return;
 
-            float angleStep = 360f / IntDefine.MAX_READY_POOL_SIZE;
+            readyBubbles.Enqueue(readyBubbles.Dequeue());
+        }
 
-            // 시작 각도: -90도
-            float angle = -90f + (angleStep * (IntDefine.MAX_READY_POOL_SIZE - 1));
-            float radians = angle * Mathf.Deg2Rad;
-
-            // 원형 좌표 계산
-            float x = transform.position.x + CIRCLE_RADIUS * Mathf.Cos(radians);
-            float y = transform.position.y + CIRCLE_RADIUS * Mathf.Sin(radians);
-
-            bubbleTransform.position = new Vector3(x, y, 0f);
+        public void StartReplace()
+        {
+            StartCoroutine(Replace());
         }
 
         public IEnumerator Replace()
@@ -66,7 +67,7 @@ namespace BubblePuzzle.Bubble
 
             IsReloading = true;
             Bubble[] rotateBubbles = new Bubble[readyBubbles.Count];
-            float angleStep = 360f / IntDefine.MAX_READY_POOL_SIZE;
+            float angleStep = 360f / readyBubbles.Count;
             float animationDuration = 1f; // 1초 동안 애니메이션
 
             // 회전 애니메이션을 진행할 버블 배열 생성 및 시작/목표 위치 저장
@@ -91,13 +92,6 @@ namespace BubblePuzzle.Bubble
                 targetPositions[index] = new Vector3(x, y, 0f);
 
                 index++;
-            }
-
-            // 큐 재구성 (회전 후 순서 반영)
-            readyBubbles.Clear();
-            foreach (var bubble in rotateBubbles)
-            {
-                readyBubbles.Enqueue(bubble);
             }
 
             // 애니메이션 실행
@@ -145,6 +139,8 @@ namespace BubblePuzzle.Bubble
             Bubble bubble = readyBubbles.Dequeue();
             bubble.SetActiveCollider(true);
 
+            onEventGetBubble?.Invoke();
+
             return bubble;
         }
 
@@ -157,6 +153,71 @@ namespace BubblePuzzle.Bubble
                 return null;
 
             return readyBubbles.Peek();
+        }
+
+        /// <summary>
+        /// Create LargeBomb at first position with spawn animation
+        /// </summary>
+        public void CreateLargeBomb(System.Action onComplete = null)
+        {
+            if (!BubblePoolManager.Instance)
+                return;
+
+            StartCoroutine(CreateLargeBombCoroutine(onComplete));
+        }
+
+        private IEnumerator CreateLargeBombCoroutine(System.Action onComplete)
+        {
+            // Create LargeBomb bubble
+            Bubble bubble = BubblePoolManager.Instance.GetBubble();
+
+            BubbleColorType randomColor = BubbleColorType.Red;
+            BubbleType bubbleType = BubbleType.LargeBomb;
+            Core.HexCoordinate coordinate = new Core.HexCoordinate(0, 0);
+            bubble.Initialize(bubbleType, randomColor, coordinate);
+            bubble.SetActiveCollider(false);
+
+            // Start from center with scale 0
+            bubble.transform.position = transform.position;
+            bubble.gameObject.SetActive(true);
+
+            // Spawn animation: scale up
+            StartCoroutine(StartScaleUpAnimation(bubble));
+
+            // Add to front of queue by creating temporary list
+            int count = readyBubbles.Count;
+            readyBubbles.Enqueue(bubble);
+            for (int i = 0; i < count; i++)
+            {
+                readyBubbles.Enqueue(readyBubbles.Dequeue());
+            }
+
+            yield return Replace();
+
+            onComplete?.Invoke();
+        }
+
+        private IEnumerator StartScaleUpAnimation(Bubble bubble)
+        {
+            float animationDuration = 0.5f;
+            float elapsed = 0f;
+            bubble.transform.localScale = Vector3.zero;
+
+            while (elapsed < animationDuration)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / animationDuration;
+
+                // Ease-out curve for smooth animation
+                float smoothT = 1f - Mathf.Pow(1f - t, 3f);
+
+                bubble.transform.localScale = Vector3.Lerp(Vector3.zero, Vector3.one, smoothT);
+
+                yield return null;
+            }
+
+            // Ensure final state
+            bubble.transform.localScale = Vector3.one;
         }
     }
 }

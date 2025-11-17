@@ -1,7 +1,6 @@
 using UnityEngine;
 using BubblePuzzle.Grid;
 using BubblePuzzle.UI;
-using BubblePuzzle.GameLogic;
 using BubblePuzzle.Bubble;
 
 namespace BubblePuzzle.Core
@@ -16,15 +15,12 @@ namespace BubblePuzzle.Core
         [Header("References")]
         [SerializeField] private LevelManager levelManager;
         [SerializeField] private UIManager uiManager;
-
-        [Header("Boss HP")]
-        [SerializeField] private int bossHpValue;
+        [SerializeField] private GameObject dim;
 
         public LevelManager LevelManager => levelManager;
         public UIManager UIManager => uiManager;
 
         private BubbleGrid bubbleGrid;
-        private BossHp bossHp;
         private int currentScore;
 
         private void Awake()
@@ -51,14 +47,12 @@ namespace BubblePuzzle.Core
             // Reset score
             currentScore = 0;
 
-            // Init boss hp
-            bossHp = new BossHp(bossHpValue);
-            var gameUI = uiManager.GetUI<GameUI>(UIType.GameUI);
-            gameUI?.SetBossHp(in bossHp);
-
             // Setup
             BubblePoolManager.Instance?.InitializePool();
-            levelManager.LoadLevel();
+            levelManager.StartGeneration();
+
+            var gameUI = uiManager.OpenUI<GameUI>(UIType.GameUI);
+            gameUI.SetBossHp(levelManager.BossHp);
         }
 
         public void SetBubbleGrid(BubbleGrid bubbleGrid)
@@ -68,23 +62,9 @@ namespace BubblePuzzle.Core
             levelManager?.SetBubbleGrid(bubbleGrid);
         }
 
-        /// <summary>
-        /// Handle bubble placement (called from shooter)
-        /// </summary>
-        public void OnBubblePlaced()
+        public void SetActiveDim(bool isActive)
         {
-            // Update UI
-            var gameUI = uiManager.GetUI<GameUI>(UIType.GameUI);
-            if (gameUI && bubbleGrid)
-            {
-                gameUI.UpdateBubblesRemaining(bubbleGrid.GetBubbleCount());
-            }
-
-            // Increment shot counter
-            if (levelManager != null)
-            {
-                levelManager.IncrementShot();
-            }
+            dim.SetActive(isActive);
         }
 
         /// <summary>
@@ -97,8 +77,6 @@ namespace BubblePuzzle.Core
 
             var gameUI = uiManager.GetUI<GameUI>(UIType.GameUI);
             gameUI?.UpdateScore(currentScore);
-
-            CheckWinCondition();
         }
 
         /// <summary>
@@ -111,26 +89,34 @@ namespace BubblePuzzle.Core
 
             var gameUI = uiManager.GetUI<GameUI>(UIType.GameUI);
             gameUI?.UpdateScore(currentScore);
-
-            CheckWinCondition();
         }
 
         public void OnDamagedBoss(int damage)
         {
+            bool isDeath = levelManager.BossHp.Damage(damage);
             var gameUI = uiManager.GetUI<GameUI>(UIType.GameUI);
+
             if (gameUI)
             {
-                bool isDeath = bossHp.Damage(damage);
-
                 if (isDeath)
-                    gameUI.UpdateBossHp(in bossHp, () => OnShowResultPopup(true));
+                    gameUI.UpdateBossHp(levelManager.BossHp, OnWinResult);
                 else
-                    gameUI.UpdateBossHp(in bossHp);
+                    gameUI.UpdateBossHp(levelManager.BossHp);
             }
-            else
+            else if (isDeath)
             {
-                OnShowResultPopup(true);
+                OnWinResult();
             }
+        }
+
+        public void OnDefeatResult()
+        {
+            OnShowResultPopup(false);
+        }
+
+        public void OnWinResult()
+        {
+            OnShowResultPopup(true);
         }
 
         private void OnShowResultPopup(bool isWin)
@@ -153,52 +139,11 @@ namespace BubblePuzzle.Core
             }
 
             SetBubbleGrid(null);
+            SetActiveDim(true);
 
             uiManager.CloseAllUI();
-        }
 
-        /// <summary>
-        /// Check if level is complete
-        /// </summary>
-        private void CheckWinCondition()
-        {
-            var gameUI = uiManager.GetUI<GameUI>(UIType.GameUI);
-            if (levelManager != null && gameUI)
-            {
-                levelManager.CheckWinCondition(currentScore);
-            }
+            UnityEngine.SceneManagement.SceneManager.LoadScene($"Scenes/IntroScene");
         }
-
-#if UNITY_EDITOR
-        private void Update()
-        {
-            // Debug shortcuts
-            if (Input.GetKeyDown(KeyCode.C))
-            {
-                ClearGrid();
-            }
-
-            if (Input.GetKeyDown(KeyCode.R))
-            {
-                ReloadScene();
-            }
-        }
-
-        private void ClearGrid()
-        {
-            if (bubbleGrid)
-            {
-                bubbleGrid.ClearAll();
-                Debug.Log("Grid cleared");
-            }
-        }
-
-        private void ReloadScene()
-        {
-            UnityEngine.SceneManagement.SceneManager.LoadScene(
-                UnityEngine.SceneManagement.SceneManager.GetActiveScene().name
-            );
-        }
-#endif
     }
 }

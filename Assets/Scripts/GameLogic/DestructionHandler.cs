@@ -38,119 +38,46 @@ namespace BubblePuzzle.GameLogic
         /// </summary>
         public IEnumerator DestroyBubbles(List<Bubble.Bubble> bubbles)
         {
-            Debug.Log("---------- DESTRUCTION START ----------");
-
             if (bubbles == null || bubbles.Count == 0)
             {
                 Debug.Log("[DestructionHandler] No bubbles to destroy");
                 yield break;
             }
 
-            Debug.Log($"[DestructionHandler] Destroying {bubbles.Count} bubbles");
-
-            // Categorize bubbles by type
-            List<Bubble.Bubble> normalBubbles = new List<Bubble.Bubble>();
-            List<Bubble.Bubble> projectileBubbles = new List<Bubble.Bubble>();
-            List<Bubble.Bubble> bombBubbles = new List<Bubble.Bubble>();
-
-            foreach (Bubble.Bubble bubble in bubbles)
-            {
-                if (bubble != null)
-                {
-                    // Categorize by bubble type
-                    if (bubble.Type == BubbleType.Bomb || bubble.Type == BubbleType.LargeBomb)
-                    {
-                        bombBubbles.Add(bubble);
-                    }
-                    else if (ShouldSpawnProjectile(bubble))
-                    {
-                        projectileBubbles.Add(bubble);
-                    }
-                    else
-                    {
-                        normalBubbles.Add(bubble);
-                    }
-                }
-            }
-
-            Debug.Log($"[DestructionHandler] Normal: {normalBubbles.Count}, Projectile: {projectileBubbles.Count}, Bomb: {bombBubbles.Count}");
-
             // Remove from grid first
+            int damageCount = 0;
             foreach (Bubble.Bubble bubble in bubbles)
             {
-                if (bubble != null && grid != null)
-                {
-                    Debug.Log($"[DestructionHandler] Removing bubble at {bubble.Coordinate} from grid");
-                    grid.RemoveBubble(bubble.Coordinate);
-                }
-                else if (bubble == null)
+                if (bubble == null)
                 {
                     Debug.LogWarning("[DestructionHandler] Null bubble in destruction list!");
+                    continue;
                 }
-            }
 
-            Debug.Log($"[DestructionHandler] All {bubbles.Count} bubbles removed from grid");
+                grid?.RemoveBubble(bubble.Coordinate);
 
-            // Animate destruction
-            List<Coroutine> animations = new List<Coroutine>();
-
-            // Normal destruction animation
-            foreach (Bubble.Bubble bubble in normalBubbles)
-            {
-                if (bubble != null)
+                if (bubble.Type == BubbleType.Fairy)
                 {
-                    animations.Add(StartCoroutine(DestructionAnimation(bubble)));
+                    damageCount++;
+                    SpawnProjectile(bubble.transform.position, OnDamagedBoss);
                 }
-            }
 
-            // Bomb bubbles - explosion effect (optional) and destroy
-            foreach (Bubble.Bubble bubble in bombBubbles)
-            {
-                if (bubble != null)
-                {
-                    // TODO: Add explosion VFX here if needed
-                    Debug.Log($"[DestructionHandler] Exploding {bubble.Type} at {bubble.Coordinate}");
-                    animations.Add(StartCoroutine(DestructionAnimation(bubble)));
-                }
-            }
-
-            // Projectile bubbles - spawn projectile and destroy
-            foreach (Bubble.Bubble bubble in projectileBubbles)
-            {
-                if (bubble != null)
-                {
-                    SpawnProjectile(bubble.transform.position);
-                    animations.Add(StartCoroutine(DestructionAnimation(bubble)));
-                }
-            }
-
-            if (projectileBubbles.Count > 0)
-            {
-                int damage = 1;
-                GameManager.Instance.OnDamagedBoss(projectileBubbles.Count * damage);
+                StartCoroutine(DestructionAnimation(bubble));
             }
 
             // Wait for delay between bubbles
-            float waitTime = destructionDelay * bubbles.Count;
-            Debug.Log($"[DestructionHandler] Waiting {waitTime}s for animations");
-            yield return new WaitForSeconds(waitTime);
-
-            Debug.Log("---------- DESTRUCTION END ----------");
+            yield return new WaitForSeconds(destructionDelay * bubbles.Count);
         }
 
-        /// <summary>
-        /// Determine if bubble should spawn projectile
-        /// </summary>
-        private bool ShouldSpawnProjectile(Bubble.Bubble bubble)
+        private void OnDamagedBoss()
         {
-            // Modify this logic based on your game design
-            return bubble.Type == BubbleType.Fairy;
+            GameManager.Instance.OnDamagedBoss(1);
         }
 
         /// <summary>
         /// Spawn a projectile at bubble position that flies to target
         /// </summary>
-        private void SpawnProjectile(Vector3 startPosition)
+        private void SpawnProjectile(Vector3 startPosition, System.Action onEventFinish = null)
         {
             if (projectilePrefab == null)
             {
@@ -168,13 +95,13 @@ namespace BubblePuzzle.GameLogic
             GameObject projectile = Instantiate(projectilePrefab, startPosition, Quaternion.identity);
 
             // Start flying animation
-            StartCoroutine(ProjectileFlightAnimation(projectile, startPosition));
+            StartCoroutine(ProjectileFlightAnimation(projectile, startPosition, onEventFinish));
         }
 
         /// <summary>
         /// Projectile flight animation with acceleration like a missile
         /// </summary>
-        private IEnumerator ProjectileFlightAnimation(GameObject projectile, Vector3 startPosition)
+        private IEnumerator ProjectileFlightAnimation(GameObject projectile, Vector3 startPosition, System.Action onEventFinish = null)
         {
             if (projectile == null) yield break;
 
@@ -209,7 +136,8 @@ namespace BubblePuzzle.GameLogic
                     Debug.Log("[DestructionHandler] Projectile reached target!");
 
                     // Destroy projectile
-                    Destroy(projectile);
+                    DestroyImmediate(projectile);
+                    onEventFinish?.Invoke();
                     yield break;
                 }
 
@@ -219,7 +147,8 @@ namespace BubblePuzzle.GameLogic
             // Cleanup if something went wrong
             if (projectile != null)
             {
-                Destroy(projectile);
+                DestroyImmediate(projectile);
+                onEventFinish?.Invoke();
             }
         }
 
@@ -253,22 +182,17 @@ namespace BubblePuzzle.GameLogic
         /// </summary>
         public IEnumerator MakeBubblesFall(List<Bubble.Bubble> bubbles)
         {
-            Debug.Log("---------- FALL START ----------");
-
             if (bubbles == null || bubbles.Count == 0)
             {
                 Debug.Log("[DestructionHandler] No bubbles to make fall");
                 yield break;
             }
 
-            Debug.Log($"[DestructionHandler] Making {bubbles.Count} bubbles fall");
-
             // Remove from grid
             foreach (Bubble.Bubble bubble in bubbles)
             {
                 if (bubble != null && grid != null)
                 {
-                    Debug.Log($"[DestructionHandler] Removing falling bubble at {bubble.Coordinate} from grid");
                     grid.RemoveBubble(bubble.Coordinate);
                 }
                 else if (bubble == null)
@@ -276,8 +200,6 @@ namespace BubblePuzzle.GameLogic
                     Debug.LogWarning("[DestructionHandler] Null bubble in fall list!");
                 }
             }
-
-            Debug.Log($"[DestructionHandler] All {bubbles.Count} falling bubbles removed from grid");
 
             // Start fall animations
             List<Coroutine> animations = new List<Coroutine>();
@@ -291,12 +213,7 @@ namespace BubblePuzzle.GameLogic
             }
 
             // Wait for fall to complete
-            Debug.Log($"[DestructionHandler] Waiting {fallDuration}s for fall animations");
             yield return new WaitForSeconds(fallDuration);
-
-            Debug.Log("[ProcessGameLogic] Fall animation complete");
-
-            Debug.Log("---------- FALL END ----------");
         }
 
         /// <summary>
@@ -327,21 +244,6 @@ namespace BubblePuzzle.GameLogic
                 }
 
                 yield return null;
-            }
-
-            bubble.ReturnToPool();
-        }
-
-        /// <summary>
-        /// Destroy single bubble immediately (no animation)
-        /// </summary>
-        public void DestroyBubbleImmediate(Bubble.Bubble bubble)
-        {
-            if (bubble == null) return;
-
-            if (grid != null)
-            {
-                grid.RemoveBubble(bubble.Coordinate);
             }
 
             bubble.ReturnToPool();

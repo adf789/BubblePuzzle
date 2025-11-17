@@ -40,8 +40,6 @@ namespace BubblePuzzle.UI
         {
             onEventResetGame?.Invoke();
             onEventResetGame = null;
-
-            UnityEngine.SceneManagement.SceneManager.LoadScene($"Scenes/IntroScene");
         }
     }
 }

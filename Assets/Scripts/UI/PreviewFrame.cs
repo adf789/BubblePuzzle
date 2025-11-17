@@ -1,6 +1,9 @@
 using UnityEngine;
 using BubblePuzzle.Core;
 using BubblePuzzle.Grid;
+using BubblePuzzle.Bubble;
+using System;
+using System.Collections.Generic;
 
 namespace BubblePuzzle.UI
 {
@@ -9,62 +12,28 @@ namespace BubblePuzzle.UI
     /// </summary>
     public class PreviewFrame : MonoBehaviour
     {
-        [Header("Visual Settings")]
-        [SerializeField] private LineRenderer lineRenderer;
-        [SerializeField] private float frameSize = 0.6f;
-        [SerializeField] private Color frameColor = new Color(1f, 1f, 1f, 0.5f);
-        [SerializeField] private float lineWidth = 0.05f;
+        [SerializeField] private GameObject previewTarget;
+        [SerializeField] private Transform bombRendererParent;
+        [SerializeField] private Transform largeBombRendererParent;
 
-        private Vector3 gridOffset;
+        private BubbleGrid bubbleGrid;
+        private BubbleType previewType;
+        private bool isInitialized = false;
 
         private void Awake()
         {
-            if (lineRenderer == null)
-            {
-                lineRenderer = gameObject.AddComponent<LineRenderer>();
-            }
-
-            SetupLineRenderer();
             Hide();
         }
 
-        public void SetGridOffset(Vector3 gridOffset)
+        private void Start()
         {
-            this.gridOffset = gridOffset;
+            // Pre-generate all renderers on start to avoid runtime lag
+            InitializeRenderers();
         }
 
-        private void SetupLineRenderer()
+        public void SetGrid(BubbleGrid bubbleGrid)
         {
-            lineRenderer.loop = true;
-            lineRenderer.startWidth = lineWidth;
-            lineRenderer.endWidth = lineWidth;
-            lineRenderer.startColor = frameColor;
-            lineRenderer.endColor = frameColor;
-            lineRenderer.positionCount = 6;
-            lineRenderer.sortingOrder = 15; // Draw on top of aim guide
-            lineRenderer.useWorldSpace = false;
-
-            // Create hexagon shape
-            UpdateHexagonShape();
-        }
-
-        /// <summary>
-        /// Update hexagon shape based on frame size (Pointy-Top)
-        /// </summary>
-        private void UpdateHexagonShape()
-        {
-            Vector3[] positions = new Vector3[6];
-
-            // Pointy-top hexagon: start at 30 degrees (top-right vertex)
-            for (int i = 0; i < 6; i++)
-            {
-                float angle = (60f * i + 30f) * Mathf.Deg2Rad;
-                float x = Mathf.Cos(angle) * frameSize;
-                float y = Mathf.Sin(angle) * frameSize;
-                positions[i] = new Vector3(x, y, 0f);
-            }
-
-            lineRenderer.SetPositions(positions);
+            this.bubbleGrid = bubbleGrid;
         }
 
         /// <summary>
@@ -72,8 +41,18 @@ namespace BubblePuzzle.UI
         /// </summary>
         public void ShowAtCoordinate(HexCoordinate coord, float hexSize)
         {
+            if (!bubbleGrid)
+            {
+                Debug.LogError("[PreviewFrame]: Not found grid");
+                return;
+            }
+
             Vector2 worldPos = coord.ToWorldPosition(hexSize);
-            transform.position = new Vector3(worldPos.x, worldPos.y, 0f) + gridOffset;
+
+            worldPos.x += bubbleGrid.GridOffset.x;
+            worldPos.y += bubbleGrid.GridOffset.y;
+            transform.position = new Vector3(worldPos.x, worldPos.y, 0f);
+
             Show();
         }
 
@@ -91,7 +70,19 @@ namespace BubblePuzzle.UI
         /// </summary>
         public void Show()
         {
-            lineRenderer.enabled = true;
+            previewTarget.SetActive(true);
+
+            switch (previewType)
+            {
+                case BubbleType.Bomb:
+                    bombRendererParent.gameObject.SetActive(true);
+                    break;
+
+                case BubbleType.LargeBomb:
+                    bombRendererParent.gameObject.SetActive(true);
+                    largeBombRendererParent.gameObject.SetActive(true);
+                    break;
+            }
         }
 
         /// <summary>
@@ -99,31 +90,131 @@ namespace BubblePuzzle.UI
         /// </summary>
         public void Hide()
         {
-            lineRenderer.enabled = false;
+            previewTarget.SetActive(false);
+            bombRendererParent.gameObject.SetActive(false);
+            largeBombRendererParent.gameObject.SetActive(false);
         }
 
         /// <summary>
-        /// Set frame color
+        /// Set preview type
         /// </summary>
-        public void SetColor(Color color)
+        public void SetPreviewType(BubbleType type)
         {
-            frameColor = color;
-            lineRenderer.startColor = color;
-            lineRenderer.endColor = color;
-        }
+            previewType = type;
 
-#if UNITY_EDITOR
-        private void OnValidate()
-        {
-            if (lineRenderer != null)
+            // Ensure renderers are initialized
+            if (!isInitialized)
             {
-                lineRenderer.startWidth = lineWidth;
-                lineRenderer.endWidth = lineWidth;
-                lineRenderer.startColor = frameColor;
-                lineRenderer.endColor = frameColor;
-                UpdateHexagonShape();
+                InitializeRenderers();
             }
         }
-#endif
+
+        /// <summary>
+        /// Pre-generate all renderers once to avoid runtime lag
+        /// </summary>
+        private void InitializeRenderers()
+        {
+            if (isInitialized)
+                return;
+
+            CreateBombRange();
+            CreateLargeBombRange();
+
+            isInitialized = true;
+        }
+
+        private void CreateBombRange()
+        {
+            if (bombRendererParent.childCount > 0)
+                return;
+
+            // Create renderers at 1-tile distance (6 neighbors)
+            CreateRenderersAtDistance(1, bombRendererParent, includeDistance: true);
+        }
+
+        private void CreateLargeBombRange()
+        {
+            if (largeBombRendererParent.childCount > 0)
+                return;
+
+            // Create renderers at 2-tile distance, excluding 1-tile distance
+            CreateRenderersAtDistance(2, largeBombRendererParent, includeDistance: false);
+        }
+
+        /// <summary>
+        /// Create renderer objects at specified hex grid distance
+        /// </summary>
+        /// <param name="distance">Hex grid distance from center (0,0,0)</param>
+        /// <param name="parent">Parent transform for instantiated objects</param>
+        /// <param name="includeDistance">If false, excludes (distance-1) tiles (for ring-only rendering)</param>
+        private void CreateRenderersAtDistance(int distance, Transform parent, bool includeDistance)
+        {
+            if (previewTarget == null || parent == null)
+            {
+                Debug.LogError("[PreviewFrame] targetRenderer or parent is null!");
+                return;
+            }
+
+            // Get hex size from grid (default fallback)
+            float hexSize = bubbleGrid != null ? bubbleGrid.HexSize : 0.6f;
+
+            // BFS to find all tiles at specified distance
+            HexCoordinate center = new HexCoordinate(0, 0);
+            HashSet<HexCoordinate> visited = new HashSet<HexCoordinate>();
+            Queue<(HexCoordinate coord, int dist)> queue = new Queue<(HexCoordinate, int)>();
+
+            queue.Enqueue((center, 0));
+            visited.Add(center);
+
+            while (queue.Count > 0)
+            {
+                var (currentCoord, currentDist) = queue.Dequeue();
+
+                // Create renderer at this position if it matches distance criteria
+                bool shouldCreate = false;
+                if (includeDistance)
+                {
+                    // Include all tiles up to and including target distance
+                    shouldCreate = currentDist > 0 && currentDist <= distance;
+                }
+                else
+                {
+                    // Only include tiles exactly at target distance (ring only)
+                    shouldCreate = currentDist == distance;
+                }
+
+                if (shouldCreate)
+                {
+                    Vector2 worldPos = currentCoord.ToWorldPosition(hexSize);
+                    GameObject rendererObj = Instantiate(previewTarget, parent);
+                    rendererObj.transform.localPosition = new Vector3(worldPos.x, worldPos.y, 0f);
+                    rendererObj.SetActive(true);
+                }
+
+                // Expand to neighbors if within distance
+                if (currentDist < distance)
+                {
+                    // Get all 6 hex neighbors
+                    HexCoordinate[] neighbors = new HexCoordinate[]
+                    {
+                        new HexCoordinate(currentCoord.q + 1, currentCoord.r),     // Right
+                        new HexCoordinate(currentCoord.q + 1, currentCoord.r - 1), // TopRight
+                        new HexCoordinate(currentCoord.q, currentCoord.r - 1),     // TopLeft
+                        new HexCoordinate(currentCoord.q - 1, currentCoord.r),     // Left
+                        new HexCoordinate(currentCoord.q - 1, currentCoord.r + 1), // BottomLeft
+                        new HexCoordinate(currentCoord.q, currentCoord.r + 1)      // BottomRight
+                    };
+
+                    foreach (HexCoordinate neighbor in neighbors)
+                    {
+                        if (!visited.Contains(neighbor))
+                        {
+                            visited.Add(neighbor);
+                            queue.Enqueue((neighbor, currentDist + 1));
+                        }
+                    }
+                }
+            }
+        }
     }
 }

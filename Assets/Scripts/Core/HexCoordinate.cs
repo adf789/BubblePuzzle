@@ -116,7 +116,7 @@ namespace BubblePuzzle.Core
 
         public override int GetHashCode()
         {
-            return q.GetHashCode() ^ (r.GetHashCode() << 2);
+            return System.HashCode.Combine(q, r);
         }
 
         public static bool operator ==(HexCoordinate a, HexCoordinate b)
