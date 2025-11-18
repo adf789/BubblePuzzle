@@ -24,7 +24,10 @@ public class GameUI : MonoBehaviour
 
     public void SetBossHp(in BossHp bossHp)
     {
+        bossHpRatio = bossHp.Rate;
+
         bossHpText.text = string.Format(BOSS_HP_FORMAT, bossHp.CurrentHp, bossHp.MaxHp, bossHp.Rate * 100);
+        bossHpBar.transform.localScale = new Vector3(bossHpRatio, 1f, 1f);
     }
 
     public void SetEventWin(System.Action onEvent)
@@ -47,7 +50,6 @@ public class GameUI : MonoBehaviour
 
     public void UpdateBossHp(BossHp bossHp)
     {
-        bossHpRatio = bossHp.Rate;
         SetBossHp(in bossHp);
 
         if (hpBarAnimationCoroutine != null)
@@ -68,8 +70,6 @@ public class GameUI : MonoBehaviour
 
         Vector3 targetRatio = new Vector3(bossHpRatio, 1f, 1f);
         Vector3 currentRatio = bossHpBarInnerground.transform.localScale;
-
-        bossHpBar.transform.localScale = targetRatio;
 
         while (Mathf.Abs(currentRatio.x - bossHpRatio) > 0.001f)
         {
