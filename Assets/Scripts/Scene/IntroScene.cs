@@ -1,5 +1,3 @@
-using BubblePuzzle.Core;
-using BubblePuzzle.UI;
 using UnityEngine;
 
 public class IntroScene : MonoBehaviour

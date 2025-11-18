@@ -1,45 +1,42 @@
 using TMPro;
 using UnityEngine;
 
-namespace BubblePuzzle.UI
+public class ResultPopup : MonoBehaviour
 {
-    public class ResultPopup : MonoBehaviour
+    [SerializeField] private TextMeshProUGUI result;
+    [SerializeField] private TextMeshProUGUI score;
+
+    private System.Action onEventResetGame = null;
+
+    private const string SCORE_FORMAT = "Score: {0}";
+
+    public void SetEventResetGame(System.Action onEvent)
     {
-        [SerializeField] private TextMeshProUGUI result;
-        [SerializeField] private TextMeshProUGUI score;
+        onEventResetGame = onEvent;
+    }
 
-        private System.Action onEventResetGame = null;
+    public void SetScore(int scoreValue)
+    {
+        score.text = string.Format(SCORE_FORMAT, scoreValue);
+    }
 
-        private const string SCORE_FORMAT = "Score: {0}";
-
-        public void SetEventResetGame(System.Action onEvent)
+    public void SetResult(bool isWin)
+    {
+        if (isWin)
         {
-            onEventResetGame = onEvent;
+            result.text = "WIN";
+            result.color = Color.blue;
         }
-
-        public void SetScore(int scoreValue)
+        else
         {
-            score.text = string.Format(SCORE_FORMAT, scoreValue);
+            result.text = "DEFEAT";
+            result.color = Color.red;
         }
+    }
 
-        public void SetResult(bool isWin)
-        {
-            if (isWin)
-            {
-                result.text = "WIN";
-                result.color = Color.blue;
-            }
-            else
-            {
-                result.text = "DEFEAT";
-                result.color = Color.red;
-            }
-        }
-
-        public void OnClickIntro()
-        {
-            onEventResetGame?.Invoke();
-            onEventResetGame = null;
-        }
+    public void OnClickIntro()
+    {
+        onEventResetGame?.Invoke();
+        onEventResetGame = null;
     }
 }

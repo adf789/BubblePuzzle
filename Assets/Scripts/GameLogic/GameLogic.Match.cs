@@ -1,19 +1,16 @@
 using System.Collections.Generic;
 using UnityEngine;
-using BubblePuzzle.Core;
-using BubblePuzzle.Grid;
-using BubblePuzzle.Bubble;
 using System.Linq;
 
-namespace BubblePuzzle.GameLogic
+namespace GameLogic
 {
-    public class MatchDetector : MonoBehaviour
+    public static class MatchDetector
     {
         /// <summary>
         /// Find all bubbles matching with the start bubble (BFS) or triggered by bombs
         /// Combines both bomb explosions and 3-match results
         /// </summary>
-        public List<Bubble.Bubble> FindMatchingCluster(Bubble.Bubble startBubble, BubbleGrid grid)
+        public static ICollection<Bubble> FindMatchingCluster(Bubble startBubble, BubbleGrid grid)
         {
             if (startBubble == null || grid == null)
             {
@@ -22,12 +19,12 @@ namespace BubblePuzzle.GameLogic
             }
 
             // Check for bomb triggers near the placed bubble
-            List<Bubble.Bubble> totalCluster = FindBombTargets(startBubble, grid);
+            HashSet<Bubble> totalCluster = FindBombTargets(startBubble, grid);
 
             // Normal color matching
-            Queue<Bubble.Bubble> queue = new Queue<Bubble.Bubble>();
+            Queue<Bubble> queue = new Queue<Bubble>();
             HashSet<HexCoordinate> checkCoords = new HashSet<HexCoordinate>();
-            List<Bubble.Bubble> colorCluster = null;
+            List<Bubble> colorCluster = null;
 
             queue.Enqueue(startBubble);
             checkCoords.Add(startBubble.Coordinate);
@@ -35,16 +32,16 @@ namespace BubblePuzzle.GameLogic
             int depth = 1;
             while (queue.Count > 0)
             {
-                Bubble.Bubble current = queue.Dequeue();
+                Bubble current = queue.Dequeue();
 
                 if (colorCluster == null)
-                    colorCluster = new List<Bubble.Bubble>() { current };
+                    colorCluster = new List<Bubble>() { current };
                 else
                     colorCluster.Add(current);
 
                 // Check all 6 neighbors
                 var neighbors = grid.GetNeighborsWithSelf(current.Coordinate, depth, checkCoords);
-                foreach (Bubble.Bubble neighbor in neighbors)
+                foreach (Bubble neighbor in neighbors)
                 {
                     if (neighbor.IsBomb)
                         continue;
@@ -70,7 +67,7 @@ namespace BubblePuzzle.GameLogic
         /// <summary>
         /// Find bombs within 1 tile of the placed bubble and collect all affected bubbles
         /// </summary>
-        private List<Bubble.Bubble> FindBombTargets(Bubble.Bubble placedBubble, BubbleGrid grid)
+        private static HashSet<Bubble> FindBombTargets(Bubble placedBubble, BubbleGrid grid)
         {
             // Check if the placed bubble itself is a bomb
             int depth = placedBubble.Type switch
@@ -83,7 +80,7 @@ namespace BubblePuzzle.GameLogic
             Debug.Log($"[MatchDetector] Placed bubble is {placedBubble.Type} at {placedBubble.Coordinate}");
 
             // Check all neighbors for bombs
-            var affectBubbles = grid.GetNeighbors(placedBubble.Coordinate, depth).ToList();
+            var affectBubbles = grid.GetNeighbors(placedBubble.Coordinate, depth).ToHashSet();
 
             // Add self
             affectBubbles.Add(placedBubble);
@@ -101,14 +98,14 @@ namespace BubblePuzzle.GameLogic
         /// <summary>
         /// Recursively calculate all bubbles affected by bomb chain explosions
         /// </summary>
-        private bool CollectExplosionCluster(ref List<Bubble.Bubble> initialBubbles, BubbleGrid grid)
+        private static bool CollectExplosionCluster(ref HashSet<Bubble> initialBubbles, BubbleGrid grid)
         {
             HashSet<HexCoordinate> checkBubbles = new HashSet<HexCoordinate>();
-            Queue<Bubble.Bubble> bombQueue = new Queue<Bubble.Bubble>();
+            Queue<Bubble> bombQueue = new Queue<Bubble>();
             bool isFindBomb = false;
 
             // Start with initial bombs
-            foreach (Bubble.Bubble bubble in initialBubbles)
+            foreach (Bubble bubble in initialBubbles)
             {
                 if (bubble.IsBomb)
                 {
@@ -123,7 +120,7 @@ namespace BubblePuzzle.GameLogic
             // Process chain explosions
             while (bombQueue.Count > 0)
             {
-                Bubble.Bubble currentBomb = bombQueue.Dequeue();
+                Bubble currentBomb = bombQueue.Dequeue();
                 int depth = currentBomb.Type == BubbleType.LargeBomb ? 2 : 1;
 
                 Debug.Log($"[MatchDetector] Processing {currentBomb.Type} at {currentBomb.Coordinate} with radius {depth}");
@@ -131,7 +128,7 @@ namespace BubblePuzzle.GameLogic
                 // Get all bubbles in explosion range
                 var explosionRange = grid.GetNeighborsWithSelf(currentBomb.Coordinate, depth, checkBubbles);
 
-                foreach (Bubble.Bubble bubble in explosionRange)
+                foreach (Bubble bubble in explosionRange)
                 {
                     // Add affected bubble
                     initialBubbles.Add(bubble);
@@ -149,23 +146,5 @@ namespace BubblePuzzle.GameLogic
 
             return isFindBomb;
         }
-
-#if UNITY_EDITOR
-        /// <summary>
-        /// Visualize matching clusters
-        /// </summary>
-        public void DrawMatchGizmos(List<Bubble.Bubble> cluster, Color color)
-        {
-            if (cluster == null || cluster.Count == 0)
-                return;
-
-            Gizmos.color = color;
-
-            foreach (Bubble.Bubble bubble in cluster)
-            {
-                Gizmos.DrawWireSphere(bubble.transform.position, 0.4f);
-            }
-        }
-#endif
     }
 }

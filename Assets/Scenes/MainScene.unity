@@ -716,6 +716,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hexSize: 0.6
   gridOrigin: {x: 0, y: 0}
+  maxGridSize: {x: 10, y: 10}
   isDrawGrids: 0
 --- !u!1 &936528868
 GameObject:
@@ -837,63 +838,6 @@ MonoBehaviour:
   minAimDistance: 1
   shootSpeed: 55
   showDebugGizmos: 1
---- !u!1001 &1037585552
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 4828227809443114815, guid: b7a157deb4e0a4a4b911df5c42dbcea8, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4828227809443114815, guid: b7a157deb4e0a4a4b911df5c42dbcea8, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4828227809443114815, guid: b7a157deb4e0a4a4b911df5c42dbcea8, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4828227809443114815, guid: b7a157deb4e0a4a4b911df5c42dbcea8, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4828227809443114815, guid: b7a157deb4e0a4a4b911df5c42dbcea8, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4828227809443114815, guid: b7a157deb4e0a4a4b911df5c42dbcea8, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4828227809443114815, guid: b7a157deb4e0a4a4b911df5c42dbcea8, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4828227809443114815, guid: b7a157deb4e0a4a4b911df5c42dbcea8, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4828227809443114815, guid: b7a157deb4e0a4a4b911df5c42dbcea8, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4828227809443114815, guid: b7a157deb4e0a4a4b911df5c42dbcea8, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7920306873815122805, guid: b7a157deb4e0a4a4b911df5c42dbcea8, type: 3}
-      propertyPath: m_Name
-      value: GameManager
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: b7a157deb4e0a4a4b911df5c42dbcea8, type: 3}
 --- !u!1 &1081151981
 GameObject:
   m_ObjectHideFlags: 0
@@ -1954,8 +1898,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1793671401}
   - component: {fileID: 1793671400}
-  - component: {fileID: 1793671404}
-  - component: {fileID: 1793671403}
   - component: {fileID: 1793671402}
   - component: {fileID: 1793671406}
   m_Layer: 0
@@ -1979,8 +1921,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   bubbleGrid: {fileID: 672402560}
   bubbleShooter: {fileID: 1019770135}
-  matchDetector: {fileID: 1793671404}
-  gravityChecker: {fileID: 1793671403}
   destructionHandler: {fileID: 1793671402}
 --- !u!4 &1793671401
 Transform:
@@ -2050,30 +1990,6 @@ MonoBehaviour:
   projectileMaxSpeed: 100
   projectileRotationSpeed: 720
   grid: {fileID: 672402560}
---- !u!114 &1793671403
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1793671399}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9180fc2351e0001448d77efea08ff12b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &1793671404
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1793671399}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0c3e0574b98eef944b8c6dca4c1957b6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &1793671406
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2440,4 +2356,3 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 1793671401}
-  - {fileID: 1037585552}

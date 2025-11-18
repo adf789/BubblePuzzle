@@ -1,25 +1,19 @@
 using System.Collections;
-using BubblePuzzle.Bubble;
-using BubblePuzzle.Core;
-using BubblePuzzle.GameLogic;
-using BubblePuzzle.Grid;
-using BubblePuzzle.Shooter;
 using UnityEngine;
 
 public class MainScene : MonoBehaviour
 {
     [SerializeField] private BubbleGrid bubbleGrid;
     [SerializeField] private BubbleShooter bubbleShooter;
-    [SerializeField] private MatchDetector matchDetector;
-    [SerializeField] private GravityChecker gravityChecker;
     [SerializeField] private DestructionHandler destructionHandler;
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         GameManager.Instance.SetBubbleGrid(bubbleGrid);
         GameManager.Instance.SetupGame();
         GameManager.Instance.SetActiveDim(false);
+
+        destructionHandler.SetEventDamagedBoss(OnDamagedBoss);
 
         bubbleShooter.SetEventSacrificeBubble(OnSacrificeBubble);
         bubbleShooter.SetEventAfterShootCoroutine(ProcessGameLogic);
@@ -32,7 +26,7 @@ public class MainScene : MonoBehaviour
     private IEnumerator ProcessGameLogic(Bubble placedBubble)
     {
         // Step 1: Check for matches
-        var matches = matchDetector.FindMatchingCluster(placedBubble, bubbleGrid);
+        var matches = GameLogic.MatchDetector.FindMatchingCluster(placedBubble, bubbleGrid);
         int matchCount = matches != null ? matches.Count : 0;
 
         if (matchCount > 0)
@@ -57,14 +51,14 @@ public class MainScene : MonoBehaviour
             }
 
             // Step 3: Check for disconnected bubbles
-            var disconnected = gravityChecker.GetDisconnectedBubbles(bubbleGrid);
-            if (disconnected.Count > 0)
+            var disconnected = GameLogic.Gravity.GetDisconnectedBubbles(bubbleGrid);
+            if (disconnected != null && disconnected.Count > 0)
             {
-                // Notify GameManager of fall
-                GameManager.Instance?.OnBubblesFallen(disconnected.Count);
-
                 // Step 4: Make them fall
-                StartCoroutine(destructionHandler.MakeBubblesFall(disconnected));
+                StartCoroutine(destructionHandler.MakeBubblesFall(disconnected, () =>
+                {
+                    GameManager.Instance?.OnBubblesFallen(disconnected.Count);
+                }));
             }
 
             yield return GameManager.Instance.LevelManager.RegenerateIfNeeded();
@@ -78,5 +72,10 @@ public class MainScene : MonoBehaviour
             GameManager.Instance.OnDefeatResult();
             bubbleShooter.SetLock(true);
         }
+    }
+
+    private void OnDamagedBoss()
+    {
+        GameManager.Instance.OnDamagedBoss(1);
     }
 }
