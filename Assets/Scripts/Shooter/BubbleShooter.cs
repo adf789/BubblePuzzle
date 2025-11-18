@@ -9,7 +9,6 @@ public class BubbleShooter : MonoBehaviour
 
     [Header("References")]
     [SerializeField] private Camera mainCamera;
-    [SerializeField] private TrajectoryCalculator trajectoryCalculator;
     [SerializeField] private AimGuide aimGuide;
     [SerializeField] private PreviewFrame previewFrame;
     [SerializeField] private BubbleGrid bubbleGrid;
@@ -41,7 +40,7 @@ public class BubbleShooter : MonoBehaviour
     private bool isLock;
     private Vector2 aimDirection;
     private System.Func<Bubble, IEnumerator> afterShootCoroutine;
-    private TrajectoryCalculator.TrajectoryResult currentTrajectory;
+    private TrajectoryResult currentTrajectory;
 
     public void Initialize(int shotCount)
     {
@@ -215,7 +214,7 @@ public class BubbleShooter : MonoBehaviour
     /// </summary>
     private void UpdateAiming()
     {
-        if (bubbleReadyPool.Current() == null)
+        if (bubbleReadyPool.Current() == null || aimGuide == null)
             return;
 
         Vector2 mousePos = Mouse.current.position.ReadValue();
@@ -233,14 +232,11 @@ public class BubbleShooter : MonoBehaviour
             return;
         }
 
-        // Calculate trajectory
-        currentTrajectory = trajectoryCalculator.CalculateTrajectory(currentBubblePos, aimDirection);
-
         // Update aim guide
-        if (aimGuide != null)
-        {
-            aimGuide.UpdateTrajectory(in currentTrajectory);
-        }
+        currentTrajectory = aimGuide.CalculateTrajectory(currentBubblePos, aimDirection);
+
+        // Update tranjectory
+        aimGuide.UpdateTrajectory(in currentTrajectory);
 
         // Update preview frame
         BubbleType bubbleType = bubbleReadyPool.Current().Type;
@@ -250,12 +246,12 @@ public class BubbleShooter : MonoBehaviour
     /// <summary>
     /// Update hexagonal preview frame position
     /// </summary>
-    private void UpdatePreviewFrame(BubbleType previewType, in TrajectoryCalculator.TrajectoryResult trajectory)
+    private void UpdatePreviewFrame(BubbleType previewType, in TrajectoryResult trajectory)
     {
         if (previewFrame == null || bubbleGrid == null)
             return;
 
-        if (!trajectory.hitBubble)
+        if (!trajectory.HitBubble)
         {
             previewFrame.Hide();
             return;
@@ -271,10 +267,10 @@ public class BubbleShooter : MonoBehaviour
     /// <summary>
     /// Calculate placement coordinate based on collision point and trajectory direction
     /// </summary>
-    private HexCoordinate CalculatePlacementCoordinate(in TrajectoryCalculator.TrajectoryResult trajectory)
+    private HexCoordinate CalculatePlacementCoordinate(in TrajectoryResult trajectory)
     {
-        Vector2 collisionPoint = trajectory.finalPosition;
-        Vector2 hitBubbleCenter = trajectory.hitInfo.transform.position;
+        Vector2 collisionPoint = trajectory.FinalPosition;
+        Vector2 hitBubbleCenter = trajectory.HitInfo.transform.position;
 
         // Calculate direction from hit bubble to collision point
         Vector2 impactDirection = (collisionPoint - hitBubbleCenter).normalized;
@@ -296,7 +292,7 @@ public class BubbleShooter : MonoBehaviour
     private void Shoot()
     {
         Debug.Log("[BubbleShooter] Shoot!");
-        if (currentTrajectory.points == null || currentTrajectory.points.Length < 2)
+        if (currentTrajectory.Points == null || currentTrajectory.Points.Length < 2)
         {
             Debug.Log("Invalid trajectory, cannot shoot");
             return;
@@ -344,7 +340,7 @@ public class BubbleShooter : MonoBehaviour
         sacrificeBubble.SetLock(true);
 
         // Animate along trajectory
-        yield return LaunchBubbleAlongPath(bubble, currentTrajectory.points);
+        yield return LaunchBubbleAlongPath(bubble, currentTrajectory.Points);
 
         // Calculate placement position using same logic as preview
         HexCoordinate placementCoord = CalculatePlacementCoordinate(in currentTrajectory);
@@ -449,9 +445,9 @@ public class BubbleShooter : MonoBehaviour
             return;
 
         // Draw trajectory
-        if (trajectoryCalculator != null && currentTrajectory.points != null)
+        if (aimGuide != null && currentTrajectory.Points != null)
         {
-            trajectoryCalculator.DrawTrajectoryGizmos(currentTrajectory, Color.cyan);
+            aimGuide.DrawTrajectoryGizmos(currentTrajectory, Color.cyan);
         }
 
         // Draw shooter position
